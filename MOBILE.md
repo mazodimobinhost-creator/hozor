@@ -52,6 +52,16 @@ npm i -D @capacitor/assets
 npx capacitor-assets generate --android
 ```
 
+### ساخت APK بدون نصب Android Studio (GitHub Actions)
+
+فایل `.github/workflows/android.yml` از قبل آماده است:
+
+1. در GitHub به تب **Actions** برو.
+2. ورک‌فلوی **Build Android APK** را انتخاب کن ← **Run workflow**.
+3. بعد از چند دقیقه، از بخش **Artifacts** فایل `hozor-android-apk` را دانلود کن؛ داخلش `app-debug.apk` است که مستقیم روی گوشی نصب می‌شود.
+
+این APK برای تست است (debug). برای انتشار در Google Play همان مراحل Android Studio و امضای Keystore لازم است.
+
 ---
 
 ## ۳) ساخت اپ نیتیو آیفون
