@@ -8,10 +8,12 @@ interface Mirror {
 }
 
 const PAGES_APK = 'https://mazodimobinhost-creator.github.io/hozor/dl/hozor.apk'
+const JSDELIVR_APK = 'https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/dl/hozor.apk'
 
 function defaultMirrors(version: string): Mirror[] {
   return [
-    { label: 'GitHub Pages (پیشنهادی)', url: PAGES_APK },
+    { label: 'GitHub Pages', url: PAGES_APK },
+    { label: 'آینه jsDelivr', url: JSDELIVR_APK },
     {
       label: 'GitHub Release',
       url: `https://github.com/mazodimobinhost-creator/hozor/releases/download/v${version}/hozor-${version}.apk`,
