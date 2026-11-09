@@ -14,6 +14,7 @@ import {
   dayKey,
   fromJalali,
   minutesToTime,
+  pad2,
   parseDayKey,
   persianWeekday,
   toJalali,
@@ -95,6 +96,13 @@ interface StoreValue {
   removeLastPunch: () => void
   saveDay: (dateISO: string, data: DayInput) => void
   deleteDay: (dateISO: string) => void
+  /** یک ورود/خروج تازه برای همان روز ثبت می‌کند (بدون ساعت = ساعت الان) */
+  addPunch: (dateISO: string, type: PunchType, time?: string) => void
+  updatePunch: (dateISO: string, index: number, time: string) => void
+  removePunch: (dateISO: string, index: number) => void
+  /** خطای ذخیره روی سرور (برای نمایش بنر و دکمه تلاش دوباره) */
+  syncError: string | null
+  syncNow: () => Promise<boolean>
   importRecords: (incoming: DayRecord[], mode: ImportMode) => Promise<number>
   resetDemo: () => void
   clearAll: () => void
@@ -222,9 +230,9 @@ function recordToRow(record: DayRecord) {
     day: record.date,
     punches: record.punches ?? [],
     holiday: record.holiday ?? false,
-    leave_minutes: record.leaveMinutes ?? null,
-    meeting_minutes: record.meetingMinutes ?? null,
-    approved_overtime_minutes: record.approvedOvertimeMinutes ?? null,
+    leave_minutes: record.leaveMinutes ?? 0,
+    meeting_minutes: record.meetingMinutes ?? 0,
+    approved_overtime_minutes: record.approvedOvertimeMinutes ?? 0,
     note: record.note ?? null,
   }
 }
@@ -248,6 +256,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }))
   const [loading, setLoading] = useState(true)
   const [serverState, setServerState] = useState<ServerState>('idle')
+  const [syncError, setSyncError] = useState<string | null>(null)
   const [legacy, setLegacy] = useState<LegacyInfo | null>(null)
 
   const stateRef = useRef(state)
@@ -271,6 +280,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           deletes.filter((day) => !upserts.some((record) => record.date === day)),
         )
         setServerState('saved')
+        setSyncError(null)
       } catch {
         const queue = readQueue(userId)
         const map = new Map(queue.upserts.map((record) => [record.date, record]))
@@ -283,6 +293,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           settings: queue.settings,
         })
         setServerState('offline')
+        setSyncError('ثبت‌ها روی سرور ذخیره نشد؛ روی گوشی نگه داشته شد و دوباره تلاش می‌شود.')
       }
     },
     [userId],
@@ -300,10 +311,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (queue.settings) await saveProfile(userId, queue.settings)
       writeJSON(queueKey(userId), { upserts: [], deletes: [] })
       setServerState('saved')
+      setSyncError(null)
     } catch {
       setServerState('offline')
+      setSyncError('ارتباط با سرور برقرار نشد؛ ثبت‌ها روی گوشی محفوظ است.')
     }
   }, [userId])
+
+  const enqueueRecords = useCallback(
+    (records: DayRecord[]) => {
+      if (!userId || !records.length) return
+      const queue = readQueue(userId)
+      const map = new Map(queue.upserts.map((record) => [record.date, record]))
+      for (const record of records) map.set(record.date, record)
+      writeJSON(queueKey(userId), { ...queue, upserts: [...map.values()] })
+    },
+    [userId],
+  )
+
+  const syncNow = useCallback(async () => {
+    await drainQueue()
+    const queue = readQueue(userId)
+    return queue.upserts.length === 0 && queue.deletes.length === 0
+  }, [drainQueue, userId])
 
   const queueSettings = useCallback(
     (settings: Settings) => {
@@ -333,7 +363,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       try {
         const [profile, rows] = await Promise.all([fetchProfile(userId), fetchDayRecords(userId)])
         if (cancelled) return
-        const records = rowsToRecords(rows)
+        const serverRecords = rowsToRecords(rows)
+        // ادغام: سوابق روی گوشی هرگز با یک لیست خالی سرور پاک نمی‌شوند
+        const localRecords = cached?.records ?? {}
+        const records: Records = { ...serverRecords, ...localRecords }
+        const missingOnServer = Object.values(localRecords).filter(
+          (record) => record && record.date && !serverRecords[record.date],
+        )
+        if (missingOnServer.length) enqueueRecords(missingOnServer)
         const base = cached?.settings ?? defaultSettings
         const settings = profileRowToSettings(profile, { ...defaultSettings, ...base })
         // اگر پروفایل هنوز نامی ندارد ولی ثبت‌نام نام داشته، آن را بنویس
@@ -523,6 +560,57 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [commit],
   )
 
+  const sortPunches = (punches: Punch[]) =>
+    [...punches].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+
+  const addPunch = useCallback(
+    (dateISO: string, type: PunchType, time?: string) => {
+      const current = stateRef.current
+      const now = new Date()
+      const clock = time && /^\d{1,2}:\d{2}$/.test(time)
+        ? time
+        : `${pad2(now.getHours())}:${pad2(now.getMinutes())}`
+      const value = buildPunch(dateISO, type, clock, current.settings)
+      const existing = current.records[dateISO] ?? { date: dateISO, punches: [] }
+      const duplicate = existing.punches.some((p) => p.at === value.at && p.type === type)
+      if (duplicate) return
+      const punches = sortPunches([...existing.punches, value])
+      commit({ ...current.records, [dateISO]: { ...existing, punches } }, [dateISO], [])
+    },
+    [commit],
+  )
+
+  const updatePunch = useCallback(
+    (dateISO: string, index: number, time: string) => {
+      const current = stateRef.current
+      const existing = current.records[dateISO]
+      const target = existing?.punches[index]
+      if (!existing || !target || !/^\d{1,2}:\d{2}$/.test(time)) return
+      const value = buildPunch(dateISO, target.type, time, current.settings)
+      const punches = sortPunches(existing.punches.map((p, i) => (i === index ? value : p)))
+      commit({ ...current.records, [dateISO]: { ...existing, punches } }, [dateISO], [])
+    },
+    [commit],
+  )
+
+  const removePunch = useCallback(
+    (dateISO: string, index: number) => {
+      const current = stateRef.current
+      const existing = current.records[dateISO]
+      if (!existing || !existing.punches[index]) return
+      const punches = existing.punches.filter((_, i) => i !== index)
+      const records = { ...current.records }
+      if (!punches.length && !existing.leaveMinutes && !existing.note && !existing.holiday) {
+        delete records[dateISO]
+        commit(records, [], [dateISO])
+      } else {
+        records[dateISO] = { ...existing, punches }
+        commit(records, [dateISO], [])
+      }
+    },
+    [commit],
+  )
+
   const importRecords = useCallback(
     async (incoming: DayRecord[], mode: ImportMode): Promise<number> => {
       const current = stateRef.current
@@ -581,7 +669,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setServerState('syncing')
     try {
       const [profile, rows] = await Promise.all([fetchProfile(userId), fetchDayRecords(userId)])
-      const records = rowsToRecords(rows)
+      // داده سرور اولویت دارد، ولی ردیف‌هایی که فقط روی گوشی هستند پاک نمی‌شوند
+      const records = { ...stateRef.current.records, ...rowsToRecords(rows) }
       const settings = profileRowToSettings(profile, stateRef.current.settings)
       apply({ settings, records })
       writeJSON(cacheKey(userId), { settings, records })
@@ -659,6 +748,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeLastPunch,
       saveDay,
       deleteDay,
+      addPunch,
+      updatePunch,
+      removePunch,
+      syncError,
+      syncNow,
       importRecords,
       resetDemo,
       clearAll,
@@ -680,6 +774,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeLastPunch,
       saveDay,
       deleteDay,
+      addPunch,
+      updatePunch,
+      removePunch,
+      syncError,
+      syncNow,
       importRecords,
       resetDemo,
       clearAll,
