@@ -84,6 +84,13 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
+      - name: Build CDN variant (jsDelivr, no Pages needed)
+        run: |
+          BASE_PATH=/gh/mazodimobinhost-creator/hozor@gh-pages/cdn/ npm run build -- --outDir dist-cdn
+          mkdir -p dist/cdn
+          cp -r dist-cdn/. dist/cdn/
+          ls dist/cdn | head
+
       - name: Put APK next to the web app
         run: |
           VERSION=$(node -p "require('./package.json').version")
@@ -100,6 +107,7 @@ jobs:
           APK=dist/dl/hozor.apk
           VERSION=$(node -p "require('./package.json').version")
           PAGES="https://mazodimobinhost-creator.github.io/hozor/dl/hozor.apk"
+          JSDELIVR="https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/dl/hozor.apk"
           RELEASE="https://github.com/mazodimobinhost-creator/hozor/releases/download/v${VERSION}/hozor-${VERSION}.apk"
 
           CATBOX=$(curl -sS --max-time 120 -F "reqtype=fileupload" -F "fileToUpload=@${APK}" https://catbox.moe/user/api.php || true)
@@ -110,14 +118,17 @@ jobs:
 
           node -e '
             const fs = require("fs");
-            const [pages, release, catbox, zerox, version] = process.argv.slice(1);
-            const list = [{ label: "GitHub Pages (سریع‌ترین)", url: pages }];
+            const [pages, jsdelivr, release, catbox, zerox, version] = process.argv.slice(1);
+            const list = [
+              { label: "GitHub Pages", url: pages },
+              { label: "آینه jsDelivr", url: jsdelivr },
+            ];
             if (catbox) list.push({ label: "آینه Catbox", url: catbox });
             if (zerox) list.push({ label: "آینه 0x0.st", url: zerox });
             list.push({ label: "GitHub Release", url: release });
             fs.writeFileSync("dist/dl/mirrors.json", JSON.stringify({ version, mirrors: list }, null, 2));
             console.log(JSON.stringify(list, null, 2));
-          ' "$PAGES" "$RELEASE" "$CATBOX" "$ZEROX" "$VERSION"
+          ' "$PAGES" "$JSDELIVR" "$RELEASE" "$CATBOX" "$ZEROX" "$VERSION"
 
       - name: Publish to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
@@ -129,3 +140,46 @@ jobs:
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'deploy: ${{ github.sha }}'
+
+      - name: Verify public URLs (from the runner)
+        continue-on-error: true
+        run: |
+          sleep 25
+          node - <<'NODE'
+          const { execSync } = require('node:child_process');
+          const fs = require('node:fs');
+          const urls = {
+            pages_index: 'https://mazodimobinhost-creator.github.io/hozor/',
+            pages_apk: 'https://mazodimobinhost-creator.github.io/hozor/dl/hozor.apk',
+            jsdelivr_index: 'https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/index.html',
+            jsdelivr_apk: 'https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/dl/hozor.apk',
+            jsdelivr_cdn_index: 'https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/cdn/index.html',
+            jsdelivr_cdn_js: 'https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/cdn/manifest.webmanifest',
+            statically_index: 'https://cdn.statically.io/gh/mazodimobinhost-creator/hozor/gh-pages/index.html',
+          };
+          const result = { checkedAt: new Date().toISOString(), urls: {} };
+          for (const [key, url] of Object.entries(urls)) {
+            try {
+              const raw = execSync(
+                `curl -sSIL --max-time 45 -o /dev/null -w '%{http_code}|%{content_type}|%{size_download}' "${url}"`,
+                { encoding: 'utf8' },
+              ).trim();
+              const [status, type, size] = raw.split('|');
+              result.urls[key] = { url, status: Number(status), contentType: type, size: Number(size) };
+            } catch (error) {
+              result.urls[key] = { url, status: 0, error: String(error.status || 'error') };
+            }
+          }
+          fs.mkdirSync('dist/dl', { recursive: true });
+          fs.writeFileSync('dist/dl/verify.json', JSON.stringify(result, null, 2));
+          console.log(JSON.stringify(result, null, 2));
+          NODE
+
+      - name: Publish verification result
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: 'deploy+verify: ${{ github.sha }}'
