@@ -13,6 +13,7 @@ import { ProfileScreen } from './components/ProfileScreen'
 import { Icon } from './components/Icons'
 import { exportMonthToExcel } from './lib/export'
 import { applyPwaUpdate, onPwaUpdateState } from './lib/pwa'
+import { checkForUpdate, isNativeApp, openExternal, type ReleaseInfo } from './lib/updates'
 
 export type Tab = 'home' | 'punch' | 'reports' | 'profile'
 
@@ -35,8 +36,19 @@ function Shell() {
   const [now, setNow] = useState(new Date())
   const [needRefresh, setNeedRefresh] = useState(false)
   const [refreshDismissed, setRefreshDismissed] = useState(false)
+  const [nativeUpdate, setNativeUpdate] = useState<ReleaseInfo | null>(null)
 
   useEffect(() => onPwaUpdateState(setNeedRefresh), [])
+
+  // بررسی خودکار نسخه جدید در اپ اندروید/آیفون
+  useEffect(() => {
+    if (!isNativeApp()) return
+    const id = window.setTimeout(async () => {
+      const result = await checkForUpdate()
+      if (result.hasUpdate && result.latest) setNativeUpdate(result.latest)
+    }, 2500)
+    return () => window.clearTimeout(id)
+  }, [])
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 30_000)
@@ -198,6 +210,22 @@ function Shell() {
         onClose={() => setSelected(null)}
         onToast={showToast}
       />
+
+      {nativeUpdate && !refreshDismissed && (
+        <div className="update-banner" role="status">
+          <span className="update-dot" />
+          <span className="update-text num">نسخه {nativeUpdate.version} آماده است</span>
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={() => openExternal(nativeUpdate.apkUrl ?? nativeUpdate.pageUrl)}
+          >
+            دریافت
+          </button>
+          <button className="icon-btn" aria-label="بستن" onClick={() => setRefreshDismissed(true)}>
+            <Icon name="x" size={15} />
+          </button>
+        </div>
+      )}
 
       {needRefresh && !refreshDismissed && (
         <div className="update-banner" role="status">
