@@ -13,3 +13,5 @@ android/
 ios/
 
 # generated android platform (created by `npx cap add android`)
+dist-native
+dist-cdn

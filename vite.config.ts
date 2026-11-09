@@ -8,7 +8,9 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 }
 
 // روی GitHub Pages اپ زیر /hozor/ سرو می‌شود؛ برای اجرای محلی base برابر /
-const base = process.env.BASE_PATH || '/'
+// نسخه نیتیو (APK) در ریشه https://localhost/ سرو می‌شود، پس همیشه base = /
+const isNativeBuild = process.env.BUILD_TARGET === 'native'
+const base = isNativeBuild ? '/' : process.env.BASE_PATH || '/'
 
 export default defineConfig({
   base,

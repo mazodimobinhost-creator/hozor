@@ -10,12 +10,118 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="حضور من" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
     <title>حضور و غیاب من</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #f4f6f9;
+        color: #1b2432;
+        font-family: Vazirmatn, system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 14px;
+        background: #f4f6f9;
+        z-index: 9;
+        padding: 24px;
+        text-align: center;
+      }
+      #boot .ring {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        background: linear-gradient(140deg, #13b3a2, #0b7f76);
+        box-shadow: 0 12px 26px rgba(15, 155, 142, 0.3);
+        animation: breathe 1.6s ease-in-out infinite;
+      }
+      #boot .txt {
+        font-size: 13px;
+        color: #8d97a8;
+      }
+      #boot .err {
+        display: none;
+        max-width: 420px;
+        font-size: 12.5px;
+        line-height: 1.9;
+        color: #a52a2e;
+        background: #fdecec;
+        border-radius: 12px;
+        padding: 12px 14px;
+        direction: rtl;
+      }
+      #boot .err code {
+        direction: ltr;
+        display: block;
+        font-size: 11px;
+        margin-top: 6px;
+        word-break: break-all;
+        color: #7d2124;
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(0.93);
+          opacity: 0.8;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot">
+      <div class="ring"></div>
+      <div class="txt">در حال باز شدن حضور و غیاب…</div>
+      <div class="err" id="boot-err"></div>
+    </div>
     <div id="root"></div>
+
+    <script>
+      // اگر بارگذاری برنامه شکست خورد، جای صفحه سفید، پیام روشن نشان بده
+      ;(function () {
+        var errBox = document.getElementById('boot-err')
+        var boot = document.getElementById('boot')
+        function show(title, detail) {
+          if (!errBox || !boot) return
+          boot.style.display = 'grid'
+          errBox.style.display = 'block'
+          errBox.innerHTML =
+            '<b>' +
+            title +
+            '</b>' +
+            (detail ? '<code>' + String(detail).slice(0, 300) + '</code>' : '')
+        }
+        window.addEventListener('error', function (event) {
+          var target = event.target || {}
+          if (target.tagName === 'SCRIPT' || target.tagName === 'LINK') {
+            show(
+              'فایل‌های برنامه باز نشد. اتصال اینترنت را بررسی کنید و دوباره باز کنید.',
+              target.src || target.href,
+            )
+            return
+          }
+          show('خطا در اجرای برنامه:', event.message)
+        })
+        window.addEventListener('unhandledrejection', function (event) {
+          var reason = event.reason
+          show('خطا در اجرای برنامه:', (reason && reason.message) || reason)
+        })
+        window.setTimeout(function () {
+          if (!window.__HOZOR_READY__) {
+            show('برنامه هنوز باز نشده است. اینترنت را بررسی کنید و صفحه را دوباره باز کنید.')
+          }
+        }, 15000)
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

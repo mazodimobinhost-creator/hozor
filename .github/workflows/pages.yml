@@ -40,11 +40,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build web app
+      - name: Build web app (subpath for GitHub Pages)
         run: npm run build
+
+      # بستهٔ داخل اپ اندروید در ریشه https://localhost/ سرو می‌شود؛
+      # اگر با BASE_PATH=/hozor/ ساخته شود همه فایل‌ها ۴۰۴ می‌شوند و صفحه سفید می‌آید.
+      - name: Build native bundle (base = /)
+        run: BUILD_TARGET=native npm run build -- --outDir dist-native
+
+      - name: Check native bundle paths
+        run: |
+          echo "--- index.html assets ---"
+          grep -o 'src="[^"]*"' dist-native/index.html | head -5
+          if grep -q "${BASE_PATH}assets" dist-native/index.html; then
+            echo "::error::native bundle still points to ${BASE_PATH} — the APK would show a white screen"
+            exit 1
+          fi
 
       - name: Add Android platform
         run: |
+          export CAP_WEB_DIR=dist-native
           if [ ! -d android ]; then npx cap add android; fi
           npx cap sync android
 

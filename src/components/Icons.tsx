@@ -26,6 +26,9 @@ type Name =
   | 'userCircle'
   | 'list'
   | 'grid'
+  | 'upload'
+  | 'cloud'
+  | 'lock'
 
 const paths: Record<Name, ReactElement> = {
   home: (
@@ -144,6 +147,27 @@ const paths: Record<Name, ReactElement> = {
       <rect x="13.5" y="3.5" width="7" height="7" rx="1.6" />
       <rect x="3.5" y="13.5" width="7" height="7" rx="1.6" />
       <rect x="13.5" y="13.5" width="7" height="7" rx="1.6" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M12 16V4" />
+      <path d="m7.5 8.5 4.5-4.5 4.5 4.5" />
+      <path d="M4 15v3.5a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5V15" />
+    </>
+  ),
+  cloud: (
+    <>
+      <path d="M7.5 18h9.2a3.3 3.3 0 0 0 .3-6.6A5 5 0 0 0 7.4 9.6 3.7 3.7 0 0 0 7.5 18Z" />
+      <path d="M12 15v-4.5" />
+      <path d="m10 12 2-2 2 2" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="4.5" y="10.5" width="15" height="9.5" rx="2.2" />
+      <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+      <path d="M12 14.5v2" />
     </>
   ),
 }

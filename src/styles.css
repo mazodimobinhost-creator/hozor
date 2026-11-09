@@ -2034,3 +2034,234 @@ select:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------- ورود و ثبت‌نام ---------- */
+.auth-wrap {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px 16px calc(26px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(120% 75% at 100% 0%, #e7f7f4 0%, rgba(244, 246, 249, 0) 58%),
+    radial-gradient(90% 60% at 0% 100%, #eaf2ff 0%, rgba(244, 246, 249, 0) 60%), var(--bg);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 430px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(140deg, #13b3a2, #0b7f76);
+  box-shadow: 0 10px 20px rgba(15, 155, 142, 0.28);
+  flex: none;
+}
+
+.auth-title {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.auth-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  line-height: 1.7;
+}
+
+.auth-seg {
+  margin: 2px 0 0;
+}
+
+.auth-card .field {
+  margin-bottom: 10px;
+}
+
+.auth-ltr {
+  font-family: inherit;
+  letter-spacing: 0.4px;
+}
+
+.auth-pass {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-eye {
+  flex: none;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--text-soft);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 10px 10px;
+  cursor: pointer;
+}
+
+.auth-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.8;
+  margin-bottom: 10px;
+}
+
+.auth-alert svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.auth-alert.error {
+  background: var(--red-50);
+  color: #a52a2e;
+}
+
+.auth-alert.ok {
+  background: var(--green-50);
+  color: #0a7a3d;
+}
+
+.auth-submit {
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.auth-links {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+}
+
+.link-btn {
+  border: 0;
+  background: none;
+  color: var(--teal);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.auth-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: #f7f9fc;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 11.5px;
+  line-height: 1.9;
+  color: var(--text-soft);
+}
+
+.auth-note svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.auth-foot {
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* ---------- صفحه شروع ---------- */
+.boot {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  background: var(--bg);
+}
+
+.boot-mark {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(140deg, #13b3a2, #0b7f76);
+  box-shadow: 0 12px 26px rgba(15, 155, 142, 0.3);
+  animation: boot-pulse 1.6s ease-in-out infinite;
+}
+
+.boot-text {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+@keyframes boot-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.94);
+    opacity: 0.82;
+  }
+}
+
+/* ---------- بنر داده‌های قبلی ---------- */
+.legacy-card {
+  border-color: #f3d9a8;
+  background: linear-gradient(180deg, #fffaf0, #fff);
+  margin-bottom: 14px;
+}
+
+.legacy-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.legacy-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 760px) {
+  .auth-card {
+    padding: 28px 28px;
+  }
+}
