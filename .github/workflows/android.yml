@@ -9,6 +9,11 @@ on:
 permissions:
   contents: write
 
+env:
+  # کلید امضای ثابت اپ تا نسخه‌های بعدی روی نسخه قبلی نصب شوند (in-place update)
+  KEYSTORE_PASSWORD: hozor2026
+  KEY_ALIAS: hozor
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -38,17 +43,47 @@ jobs:
           if [ ! -d android ]; then npx cap add android; fi
           npx cap sync android
 
-      - name: Build debug APK
+      - name: Set app version from package.json
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          CODE=$(node -p "const v=require('./package.json').version.split('.').map(Number); v[0]*10000+v[1]*100+(v[2]||0)")
+          sed -i "s/versionCode 1/versionCode ${CODE}/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"${VERSION}\"/" android/app/build.gradle
+          echo "version ${VERSION} / code ${CODE}"
+
+      - name: Configure release signing
+        run: |
+          cp signing/hozor-release.p12 android/app/hozor-release.p12
+          cat >> android/app/build.gradle <<'GRADLE'
+
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file('hozor-release.p12')
+                      storePassword System.getenv('KEYSTORE_PASSWORD')
+                      keyAlias System.getenv('KEY_ALIAS')
+                      keyPassword System.getenv('KEYSTORE_PASSWORD')
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                  }
+              }
+          }
+          GRADLE
+
+      - name: Build signed release APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Rename APK
+      - name: Collect APK
         run: |
           VERSION=$(node -p "require('./package.json').version")
           mkdir -p out
-          cp android/app/build/outputs/apk/debug/app-debug.apk "out/hozor-${VERSION}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "out/hozor-${VERSION}.apk"
           ls -lh out
 
       - name: Upload APK artifact
@@ -58,9 +93,17 @@ jobs:
           path: out/*.apk
           if-no-files-found: error
 
-      - name: Attach APK to release
+      - name: Publish to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: out/*.apk
           generate_release_notes: true
+          body: |
+            ### اپ حضور و غیاب من — نسخه ${{ github.ref_name }}
+
+            نصب: فایل `hozor-*.apk` را روی گوشی اندروید دانلود و نصب کنید
+            (اجازه «نصب از منابع ناشناس» لازم است).
+            اگر نسخه قبلی نصب است، همین فایل روی آن به‌روزرسانی می‌شود و داده‌ها می‌مانند.
+
+            برای آیفون: همین اپ را به‌صورت PWA با Safari نصب کنید یا پروژه iOS را با Xcode بسازید (`MOBILE.md`).

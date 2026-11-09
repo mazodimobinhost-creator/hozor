@@ -11,3 +11,5 @@ dist-ssr
 # Capacitor native projects are generated with `npx cap add android|ios`
 android/
 ios/
+
+# generated android platform (created by `npx cap add android`)
