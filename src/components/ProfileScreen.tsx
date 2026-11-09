@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Settings } from '../lib/types'
 import { useStore } from '../lib/store'
+import { useAuth } from '../lib/auth'
 import { PERSIAN_WEEKDAYS, faDigits, formatDuration } from '../lib/jalali'
 import { shiftWindow } from '../lib/calc'
 import { Icon } from './Icons'
@@ -8,8 +9,25 @@ import { UpdateCard } from './UpdateCard'
 import { DownloadCard } from './DownloadCard'
 
 export function ProfileScreen({ onToast }: { onToast: (msg: string) => void }) {
-  const { settings, updateSettings, resetDemo, clearAll } = useStore()
+  const { settings, updateSettings, resetDemo, clearAll, serverState, refresh } = useStore()
+  const { email, signOut, updatePassword } = useAuth()
   const [form, setForm] = useState<Settings>(settings)
+  const [newPassword, setNewPassword] = useState('')
+
+  // وقتی داده‌های حساب از سرور می‌رسد، فرم را هم‌سان کن
+  useEffect(() => {
+    setForm(settings)
+  }, [settings])
+  const [passMsg, setPassMsg] = useState('')
+
+  const syncLabel =
+    serverState === 'saved'
+      ? 'همگام با سرور'
+      : serverState === 'syncing'
+        ? 'در حال همگام‌سازی…'
+        : serverState === 'offline'
+          ? 'آفلاین — تغییرات در صف'
+          : 'آماده'
 
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
@@ -181,6 +199,88 @@ export function ProfileScreen({ onToast }: { onToast: (msg: string) => void }) {
       </section>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <section className="card">
+          <div className="card-head">
+            <div className="card-title">حساب کاربری</div>
+            <div className="spacer" />
+            <span
+              className={`chip ${
+                serverState === 'offline'
+                  ? 'chip-orange'
+                  : serverState === 'syncing'
+                    ? 'chip-blue'
+                    : 'chip-green'
+              }`}
+            >
+              {syncLabel}
+            </span>
+          </div>
+          <div className="card-body">
+            <div className="kv">
+              <span className="kv-k">ایمیل</span>
+              <span className="kv-v tiny num" dir="ltr">
+                {email || '—'}
+              </span>
+            </div>
+            <div className="kv">
+              <span className="kv-k">دسترسی</span>
+              <span className="kv-v tiny">
+                فقط سوابق خودم — به‌صورت رمزگذاری‌شده روی سرور و جدا از بقیه کاربران
+              </span>
+            </div>
+
+            <div className="field" style={{ marginTop: 10 }}>
+              <label htmlFor="new-pass">تغییر رمز عبور</label>
+              <div className="auth-pass">
+                <input
+                  id="new-pass"
+                  className="input auth-ltr"
+                  type="password"
+                  dir="ltr"
+                  autoComplete="new-password"
+                  placeholder="رمز جدید (حداقل ۶ کاراکتر)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => {
+                    if (newPassword.length < 6) {
+                      setPassMsg('رمز باید حداقل ۶ کاراکتر باشد.')
+                      return
+                    }
+                    void updatePassword(newPassword)
+                      .then(() => {
+                        setPassMsg('رمز عبور تغییر کرد.')
+                        setNewPassword('')
+                      })
+                      .catch(() => setPassMsg('تغییر رمز انجام نشد. دوباره وارد شوید.'))
+                  }}
+                >
+                  ذخیره
+                </button>
+              </div>
+              {passMsg && <span className="tiny muted">{passMsg}</span>}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+              <button className="btn btn-sm" onClick={() => void refresh()}>
+                <Icon name="cloud" size={15} /> به‌روزرسانی از سرور
+              </button>
+              <button
+                className="btn btn-sm btn-danger"
+                onClick={() => {
+                  if (!window.confirm('از حساب خارج می‌شوید؟ داده‌ها روی سرور محفوظ می‌ماند.')) return
+                  void signOut()
+                }}
+              >
+                <Icon name="logout" size={15} /> خروج از حساب
+              </button>
+            </div>
+          </div>
+        </section>
+
         <UpdateCard onToast={onToast} />
         <DownloadCard onToast={onToast} />
 
@@ -207,10 +307,10 @@ export function ProfileScreen({ onToast }: { onToast: (msg: string) => void }) {
             </div>
 
             <div className="notice" style={{ marginTop: 10 }}>
-              <Icon name="info" size={16} />
+              <Icon name="lock" size={16} />
               <div>
-                این اپ آفلاین کار می‌کند و همه اطلاعات روی حافظه گوشی خودتان ذخیره می‌شود؛ هر فرد فقط
-                سوابق خودش را می‌بیند.
+                سوابق شما روی سرور امن ذخیره می‌شود و فقط با حساب خودتان قابل دیدن است؛ بدون اینترنت
+                هم ثبت‌ها روی گوشی می‌مانند و بعد از وصل شدن همگام می‌شوند.
               </div>
             </div>
           </div>
@@ -222,8 +322,8 @@ export function ProfileScreen({ onToast }: { onToast: (msg: string) => void }) {
           </div>
           <div className="card-body">
             <p className="tiny muted" style={{ marginTop: 0 }}>
-              برای دیدن ظاهر تقویم، چند ماه دادهٔ نمونه ثبت شده است. می‌توانید آن را پاک کنید و از امروز
-              ثبت واقعی را شروع کنید.
+              اگر می‌خواهید ظاهر تقویم را با داده‌های نمونه ببینید، اینجا می‌توانید چند ماه داده نمونه
+              اضافه کنید یا همه ثبت‌ها را پاک کنید.
             </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button

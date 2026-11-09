@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { StoreProvider, useStore } from './lib/store'
+import { AuthProvider, useAuth } from './lib/auth'
+import { AuthScreen } from './components/AuthScreen'
+import { ImportScreen } from './components/ImportScreen'
 import { computeMonth } from './lib/calc'
 import { PERSIAN_MONTHS, faDigits, formatJalaliLong, shiftMonth, toJalali } from './lib/jalali'
 import type { DaySummary } from './lib/types'
@@ -15,17 +18,22 @@ import { exportMonthToExcel } from './lib/export'
 import { applyPwaUpdate, onPwaUpdateState } from './lib/pwa'
 import { checkForUpdate, isNativeApp, openExternal, type ReleaseInfo } from './lib/updates'
 
-export type Tab = 'home' | 'punch' | 'reports' | 'profile'
+export type Tab = 'home' | 'punch' | 'reports' | 'import' | 'profile'
 
-const navItems: { id: Tab; label: string; icon: 'calendar' | 'login' | 'chart' | 'userCircle' }[] = [
+const navItems: {
+  id: Tab
+  label: string
+  icon: 'calendar' | 'login' | 'chart' | 'upload' | 'userCircle'
+}[] = [
   { id: 'home', label: 'تقویم', icon: 'calendar' },
   { id: 'punch', label: 'ثبت', icon: 'login' },
   { id: 'reports', label: 'گزارش', icon: 'chart' },
+  { id: 'import', label: 'ایمپورت', icon: 'upload' },
   { id: 'profile', label: 'من', icon: 'userCircle' },
 ]
 
 function Shell() {
-  const { settings, records } = useStore()
+  const { settings, records, legacy, migrateLegacy, dismissLegacy, serverState } = useStore()
   const today = new Date()
   const initial = toJalali(today)
 
@@ -127,6 +135,35 @@ function Shell() {
               </button>
             </div>
 
+            {legacy && (
+              <section className="card legacy-card">
+                <div className="card-body legacy-body">
+                  <div>
+                    <div className="card-title">داده‌های قبلی این دستگاه</div>
+                    <div className="tiny muted">
+                      <span className="num">{faDigits(legacy.recordCount)}</span> روز ثبت‌شده از نسخه
+                      قبل (بدون لاگین) روی این دستگاه پیدا شد. به حساب خودتان منتقل شود؟
+                    </div>
+                  </div>
+                  <div className="legacy-actions">
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => {
+                        void migrateLegacy().then((count) =>
+                          showToast(`داده ${faDigits(count)} روز منتقل شد`),
+                        )
+                      }}
+                    >
+                      انتقال به حساب من
+                    </button>
+                    <button className="btn btn-sm btn-ghost" onClick={dismissLegacy}>
+                      لازم نیست
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )}
+
             <StatCards stats={stats} />
             <CalendarCard
               jy={month.jy}
@@ -140,6 +177,21 @@ function Shell() {
         )}
 
         {tab === 'punch' && <PunchTab settings={settings} onToast={showToast} />}
+
+        {tab === 'import' && (
+          <>
+            <div className="month-bar">
+              <div>
+                <div className="month-title">ایمپورت کارکرد</div>
+                <div className="tiny muted">
+                  فایل اکسل را با لینک یا از گوشی بیاورید
+                  {serverState === 'offline' ? ' · آفلاین' : ''}
+                </div>
+              </div>
+            </div>
+            <ImportScreen onToast={showToast} />
+          </>
+        )}
 
         {tab === 'reports' && (
           <>
@@ -258,10 +310,32 @@ function Shell() {
   )
 }
 
-export default function App() {
+function BootSplash() {
   return (
-    <StoreProvider>
+    <div className="boot">
+      <div className="boot-mark">
+        <Icon name="calendarCheck" size={26} />
+      </div>
+      <div className="boot-text">در حال آماده‌سازی…</div>
+    </div>
+  )
+}
+
+function Gate() {
+  const { session, loading } = useAuth()
+  if (loading) return <BootSplash />
+  if (!session) return <AuthScreen />
+  return (
+    <StoreProvider key={session.user.id}>
       <Shell />
     </StoreProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Gate />
+    </AuthProvider>
   )
 }

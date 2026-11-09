@@ -4,10 +4,15 @@ import { formatClock, formatJalaliLong } from '../lib/jalali'
 import { Icon } from './Icons'
 import type { Tab } from '../App'
 
-const tabs: { id: Tab; label: string; icon: 'calendar' | 'login' | 'chart' | 'user' }[] = [
+const tabs: {
+  id: Tab
+  label: string
+  icon: 'calendar' | 'login' | 'chart' | 'upload' | 'user'
+}[] = [
   { id: 'home', label: 'تقویم من', icon: 'calendar' },
   { id: 'punch', label: 'ثبت ورود و خروج', icon: 'login' },
   { id: 'reports', label: 'گزارش‌ها', icon: 'chart' },
+  { id: 'import', label: 'ایمپورت اکسل', icon: 'upload' },
   { id: 'profile', label: 'پروفایل', icon: 'user' },
 ]
 

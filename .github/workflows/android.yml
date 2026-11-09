@@ -35,11 +35,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build web app
-        run: npm run build
+      # بستهٔ وب داخل APK باید از ریشه (https://localhost/) بارگذاری شود
+      - name: Build native bundle (base = /)
+        run: BUILD_TARGET=native npm run build -- --outDir dist-native
+
+      - name: Check native bundle paths
+        run: |
+          grep -o 'src="[^"]*"' dist-native/index.html | head -5
+          if grep -q 'BASE_PATH\|/hozor/assets' dist-native/index.html; then
+            echo "::error::native bundle has a wrong base path"
+            exit 1
+          fi
 
       - name: Add Android platform
         run: |
+          export CAP_WEB_DIR=dist-native
           if [ ! -d android ]; then npx cap add android; fi
           npx cap sync android
 
