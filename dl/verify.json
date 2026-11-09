@@ -1,0 +1,65 @@
+{
+  "checkedAt": "2026-11-09T15:25:33.800Z",
+  "urls": {
+    "pages_index": {
+      "url": "https://mazodimobinhost-creator.github.io/hozor/",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "size": 0
+    },
+    "pages_apk": {
+      "url": "https://mazodimobinhost-creator.github.io/hozor/dl/hozor.apk",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "size": 0
+    },
+    "jsdelivr_index": {
+      "url": "https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/index.html",
+      "status": 200,
+      "contentType": "text/plain; charset=utf-8",
+      "size": 0
+    },
+    "jsdelivr_apk": {
+      "url": "https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/dl/hozor.apk",
+      "status": 200,
+      "contentType": "application/vnd.android.package-archive",
+      "size": 0
+    },
+    "jsdelivr_cdn_index": {
+      "url": "https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/cdn/index.html",
+      "status": 200,
+      "contentType": "text/plain; charset=utf-8",
+      "size": 0
+    },
+    "jsdelivr_cdn_js": {
+      "url": "https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/cdn/manifest.webmanifest",
+      "status": 200,
+      "contentType": "application/manifest+json; charset=utf-8",
+      "size": 0
+    },
+    "statically_index": {
+      "url": "https://cdn.statically.io/gh/mazodimobinhost-creator/hozor/gh-pages/index.html",
+      "status": 200,
+      "contentType": "text/plain; charset=utf-8",
+      "size": 0
+    },
+    "githack_index": {
+      "url": "https://raw.githack.com/mazodimobinhost-creator/hozor/gh-pages/index.html",
+      "status": 403,
+      "contentType": "text/html; charset=UTF-8",
+      "size": 0
+    },
+    "githack_cdn_index": {
+      "url": "https://raw.githack.com/mazodimobinhost-creator/hozor/gh-pages/cdn/index.html",
+      "status": 403,
+      "contentType": "text/html; charset=UTF-8",
+      "size": 0
+    },
+    "githack_assets": {
+      "url": "https://raw.githack.com/mazodimobinhost-creator/hozor/gh-pages/cdn/assets/index-ndAlJVBE.js",
+      "status": 403,
+      "contentType": "text/html; charset=UTF-8",
+      "size": 0
+    }
+  }
+}

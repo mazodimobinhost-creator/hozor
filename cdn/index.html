@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f9b8e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="حضور من" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
+    <title>حضور و غیاب من</title>
+    <style>html,body{color:#1b2432;background:#f4f6f9;margin:0;font-family:Vazirmatn,system-ui,-apple-system,Segoe UI,sans-serif}#boot{z-index:9;text-align:center;background:#f4f6f9;place-content:center;justify-items:center;gap:14px;padding:24px;display:grid;position:fixed;inset:0}#boot .ring{background:linear-gradient(140deg,#13b3a2,#0b7f76);border-radius:14px;width:46px;height:46px;animation:1.6s ease-in-out infinite breathe;box-shadow:0 12px 26px #0f9b8e4d}#boot .txt{color:#8d97a8;font-size:13px}#boot .err{color:#a52a2e;direction:rtl;background:#fdecec;border-radius:12px;max-width:420px;padding:12px 14px;font-size:12.5px;line-height:1.9;display:none}#boot .err code{word-break:break-all;color:#7d2124;direction:ltr;margin-top:6px;font-size:11px;display:block}@keyframes breathe{0%,to{opacity:1;transform:scale(1)}50%{opacity:.8;transform:scale(.93)}}</style>
+    <script type="module" crossorigin src="/gh/mazodimobinhost-creator/hozor@gh-pages/cdn/assets/index-d3z4_HjZ.js"></script>
+    <link rel="stylesheet" crossorigin href="/gh/mazodimobinhost-creator/hozor@gh-pages/cdn/assets/index-Druy27vN.css">
+  <link rel="manifest" href="/gh/mazodimobinhost-creator/hozor@gh-pages/cdn/manifest.webmanifest"></head>
+  <body>
+    <div id="boot">
+      <div class="ring"></div>
+      <div class="txt">در حال باز شدن حضور و غیاب…</div>
+      <div class="err" id="boot-err"></div>
+    </div>
+    <div id="root"></div>
+
+    <script>
+      // اگر بارگذاری برنامه شکست خورد، جای صفحه سفید، پیام روشن نشان بده
+      ;(function () {
+        var errBox = document.getElementById('boot-err')
+        var boot = document.getElementById('boot')
+        function show(title, detail) {
+          if (!errBox || !boot) return
+          boot.style.display = 'grid'
+          errBox.style.display = 'block'
+          errBox.innerHTML =
+            '<b>' +
+            title +
+            '</b>' +
+            (detail ? '<code>' + String(detail).slice(0, 300) + '</code>' : '')
+        }
+        window.addEventListener('error', function (event) {
+          var target = event.target || {}
+          if (target.tagName === 'SCRIPT' || target.tagName === 'LINK') {
+            show(
+              'فایل‌های برنامه باز نشد. اتصال اینترنت را بررسی کنید و دوباره باز کنید.',
+              target.src || target.href,
+            )
+            return
+          }
+          show('خطا در اجرای برنامه:', event.message)
+        })
+        window.addEventListener('unhandledrejection', function (event) {
+          var reason = event.reason
+          show('خطا در اجرای برنامه:', (reason && reason.message) || reason)
+        })
+        window.setTimeout(function () {
+          if (!window.__HOZOR_READY__) {
+            show('برنامه هنوز باز نشده است. اینترنت را بررسی کنید و صفحه را دوباره باز کنید.')
+          }
+        }, 15000)
+      })()
+    </script>
+  </body>
+</html>
