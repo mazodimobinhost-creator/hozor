@@ -19,6 +19,7 @@ export interface ProfileRow {
 export interface DayRecordRow {
   day: string
   punches: Punch[] | null
+  holiday: boolean | null
   leave_minutes: number | null
   meeting_minutes: number | null
   approved_overtime_minutes: number | null

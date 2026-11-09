@@ -34,6 +34,11 @@ function isNextDay(d: DaySummary): boolean {
   return new Date(d.lastOut).getDate() !== parseDayKey(d.key).getDate()
 }
 
+/** اضافه‌کاری نمایشی: تأییدشده، و اگر نبود مقدار محاسبه‌شده */
+function overtimeValue(d: DaySummary): number {
+  return d.approvedOvertimeMinutes > 0 ? d.approvedOvertimeMinutes : d.pendingOvertimeMinutes
+}
+
 /** total presence span from first in to last out */
 function presenceSpan(d: DaySummary): number {
   if (!d.firstIn || !d.lastOut) return 0
@@ -96,6 +101,20 @@ function CellBody({
         </div>
       )}
 
+      {overtimeValue(d) > 0 && (
+        <div className={`ot-line num ${d.approvedOvertimeMinutes > 0 ? '' : 'is-pending'}`}>
+          <span className="ot-line-label">اضافه‌کاری</span>
+          <span>{formatDuration(overtimeValue(d))}</span>
+        </div>
+      )}
+
+      {d.isHoliday && d.workedMinutes > 0 && (
+        <div className="holiday-line num">
+          <span>تعطیل‌کاری</span>
+          <span>{formatDuration(d.workedMinutes)}</span>
+        </div>
+      )}
+
       {d.deficitMinutes > 0 && (
         <div className="pill pill-red num">
           <span>کسر {formatDuration(d.deficitMinutes)}</span>
@@ -105,11 +124,6 @@ function CellBody({
       {!compact && d.lateMinutes > 0 && (
         <div className="mini-note">
           <span>تاخیر {faDigits(d.lateMinutes)} دقیقه</span>
-        </div>
-      )}
-      {!compact && d.approvedOvertimeMinutes > 0 && (
-        <div className="mini-note">
-          <span>اضافه‌کاری تاییدشده {formatDuration(d.approvedOvertimeMinutes)}</span>
         </div>
       )}
       {!compact && d.meetingMinutes > 0 && (
@@ -234,9 +248,14 @@ export function CalendarCard({ jy, jm, records, settings, now, onSelect }: Props
                     {summary.workedMinutes > 0 && (
                       <span className="chip chip-green num">کارکرد {formatDuration(summary.workedMinutes)}</span>
                     )}
-                    {summary.approvedOvertimeMinutes > 0 && (
-                      <span className="chip chip-violet num">
-                        اضافه‌کاری {formatDuration(summary.approvedOvertimeMinutes)}
+                    {overtimeValue(summary) > 0 && (
+                      <span className="ot-chip num">
+                        اضافه‌کاری {formatDuration(overtimeValue(summary))}
+                      </span>
+                    )}
+                    {summary.isHoliday && summary.workedMinutes > 0 && !summary.isWeekend && (
+                      <span className="chip chip-amber num">
+                        تعطیل‌کاری {formatDuration(summary.workedMinutes)}
                       </span>
                     )}
                     {summary.lateMinutes > 0 && (

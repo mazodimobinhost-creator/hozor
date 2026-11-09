@@ -1,5 +1,8 @@
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
+// زیرمجموعهٔ عربی صریح، تا حتی اگر CSS اصلی فونت کامل بارگذاری نشود حروف فارسی درست بیایند
+import '@fontsource/vazirmatn/arabic-400.css'
+import '@fontsource/vazirmatn/arabic-700.css'
 import '@fontsource/vazirmatn/400.css'
 import '@fontsource/vazirmatn/500.css'
 import '@fontsource/vazirmatn/600.css'

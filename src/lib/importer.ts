@@ -15,17 +15,28 @@ export interface ColumnMapping {
   date: number
   in: number
   out: number
+  in2: number
+  out2: number
   worked: number
+  leave: number
+  overtime: number
   note: number
 }
+
+export type ColumnKey = keyof Omit<ColumnMapping, 'headerRow'>
 
 export interface ParsedRow {
   raw: string[]
   day: string | null
   in?: string
   out?: string
+  in2?: string
+  out2?: string
   note?: string
+  leaveMinutes?: number
+  overtimeMinutes?: number
   workedMinutes?: number
+  holiday?: boolean
   ok: boolean
   error?: string
 }
@@ -42,11 +53,18 @@ export function normalizeDigits(input: string): string {
     .replace(/[,،]/g, '')
 }
 
-const clean = (value: string) =>
-  normalizeDigits(String(value ?? ''))
+/** نرمال‌سازی متن سرستون‌ها: بدون نیم‌فاصله، بدون فاصله اضافی، حروف کوچک */
+export function normalizeHeader(input: string): string {
+  return normalizeDigits(String(input ?? ''))
     .replace(/[\u200c\u200f\u200e]/g, '')
+    .replace(/ي/g, 'ی')
+    .replace(/ك/g, 'ک')
     .replace(/\s+/g, ' ')
     .trim()
+    .toLowerCase()
+}
+
+const clean = (value: string) => normalizeDigits(String(value ?? '')).replace(/\s+/g, ' ').trim()
 
 /** شماره سریال اکسل → تاریخ میلادی */
 function fromExcelSerial(serial: number): Date | null {
@@ -98,7 +116,7 @@ export function parseDateCell(input: string): string | null {
   const named = text.match(/^(\d{1,2})\s+([^\d]+)\s+(\d{2,4})$/)
   if (named) {
     const day = Number(named[1])
-    const month = PERSIAN_MONTH_INDEX[named[2].trim()]
+    const month = PERSIAN_MONTH_INDEX[normalizeHeader(named[2])]
     let year = Number(named[3])
     if (year < 100) year = 1400 + year
     if (month) return buildDay(year, month, day)
@@ -193,7 +211,6 @@ export function parseTimeCell(input: string): string | null {
     if (value <= 1439) return fmtMinutes(value)
   }
 
-  // ۸ ساعت و ۳۰ دقیقه → ساعت شروع نامعلوم است، اینجا بی‌معناست
   return null
 }
 
@@ -204,7 +221,7 @@ function fmtMinutes(total: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
-/** مدت کارکرد را به دقیقه تبدیل می‌کند: ۸:۳۰ · 8.5 · ۸ ساعت ۳۰ دقیقه · 510 */
+/** مدت (کارکرد/مرخصی/اضافه‌کاری) را به دقیقه تبدیل می‌کند: ۸:۳۰ · 8.5 · ۸ ساعت ۳۰ دقیقه · 510 */
 export function parseDurationCell(input: string): number | null {
   const text = clean(input)
   if (!text) return null
@@ -231,35 +248,44 @@ export function parseDurationCell(input: string): number | null {
 
 const KEYWORDS = {
   date: ['تاریخ', 'تاريخ', 'date', 'روز', 'day'],
-  in: ['ورود', 'ساعت ورود', 'in', 'enter', 'checkin', 'check in', 'start', 'شروع'],
-  out: ['خروج', 'ساعت خروج', 'out', 'exit', 'checkout', 'check out', 'پایان', 'پایان کار'],
+  in: ['ورود', 'ورود 1', 'ورود1', 'in', 'enter', 'checkin', 'check in', 'start', 'شروع'],
+  out: ['خروج', 'خروج 1', 'خروج1', 'out', 'exit', 'checkout', 'check out', 'پایان', 'پایان کار'],
+  in2: ['ورود 2', 'ورود2', 'ورود دوم', 'in2', 'in 2', 'second in'],
+  out2: ['خروج 2', 'خروج2', 'خروج دوم', 'out2', 'out 2', 'second out'],
   worked: ['کارکرد', 'مدت', 'مجموع', 'جمع', 'ساعت کار', 'worked', 'total', 'duration', 'حضور'],
-  note: ['توضیح', 'توضیحات', 'note', 'remark', 'شرح', 'ملاحظات', 'علت'],
+  leave: ['مرخصی', 'مرخصى', 'استحقاقی', 'استعلاجی', 'leave', 'vacation'],
+  overtime: ['اضافه کار', 'اضافهكار', 'اضافه‌کاری', 'اضافه کاری', 'اضافهکار', 'overtime', 'extra'],
+  note: ['توضیح', 'توضیحات', 'note', 'remark', 'شرح', 'ملاحظات', 'علت', 'وضعیت'],
   header: ['تاریخ', 'تاريخ', 'date', 'ورود', 'خروج', 'کارکرد', 'روز'],
 }
+
+const SECOND_MARK = /(۲|2|دوم|second|ii)/
 
 function scoreHeader(row: string[]): number {
   let score = 0
   for (const cell of row) {
-    const text = clean(cell).toLowerCase()
+    const text = normalizeHeader(cell)
     if (!text) continue
-    if (KEYWORDS.header.some((k) => text.includes(k))) score++
+    if (KEYWORDS.header.some((k) => text.includes(normalizeHeader(k)))) score++
   }
   return score
 }
 
-function findColumn(headers: string[], keys: string[]): number {
-  const normalized = headers.map((h) => clean(h).toLowerCase())
-  // اولویت: تطابق کامل، بعد شامل بودن
-  for (const key of keys) {
-    const index = normalized.findIndex((h) => h === key)
-    if (index >= 0) return index
-  }
-  for (const key of keys) {
-    const index = normalized.findIndex((h) => h.includes(key))
-    if (index >= 0) return index
-  }
-  return NO_COLUMN
+/** از میان سرستون‌ها، ستون متناظر با کلیدواژه‌ها را پیدا می‌کند */
+function findColumn(headers: string[], keys: string[], options?: { second?: boolean }): number {
+  const normalized = headers.map(normalizeHeader)
+  const keyList = keys.map(normalizeHeader)
+  const matches = (header: string) => keyList.some((k) => header === k || header.includes(k))
+  const pool = normalized
+    .map((header, index) => ({ header, index }))
+    .filter(({ header }) => Boolean(header) && matches(header))
+    .filter(({ header }) =>
+      options?.second === undefined ? true : options.second ? SECOND_MARK.test(header) : !SECOND_MARK.test(header),
+    )
+  if (!pool.length) return NO_COLUMN
+  // تطابق کامل اولویت دارد
+  const exact = pool.find(({ header }) => keyList.includes(header))
+  return (exact ?? pool[0]).index
 }
 
 /** ردیف سرستون و ستون‌ها را حدس می‌زند */
@@ -278,13 +304,25 @@ export function guessMapping(rows: string[][]): ColumnMapping {
   const mapping: ColumnMapping = {
     headerRow,
     date: findColumn(headers, KEYWORDS.date),
-    in: findColumn(headers, KEYWORDS.in),
-    out: findColumn(headers, KEYWORDS.out),
+    in: findColumn(headers, [...KEYWORDS.in, ...KEYWORDS.in2], { second: false }),
+    out: findColumn(headers, [...KEYWORDS.out, ...KEYWORDS.out2], { second: false }),
+    in2: findColumn(headers, [...KEYWORDS.in, ...KEYWORDS.in2], { second: true }),
+    out2: findColumn(headers, [...KEYWORDS.out, ...KEYWORDS.out2], { second: true }),
     worked: findColumn(headers, KEYWORDS.worked),
+    leave: findColumn(headers, KEYWORDS.leave),
+    overtime: findColumn(headers, KEYWORDS.overtime),
     note: findColumn(headers, KEYWORDS.note),
   }
   if (mapping.date === NO_COLUMN) mapping.date = 0
   return mapping
+}
+
+const yesWords = /(بله|آری|درست|yes|true|1|تعطیل|holiday)/
+
+function parseHoliday(value: string): boolean {
+  const text = normalizeHeader(value)
+  if (!text) return false
+  return yesWords.test(text) && !/^(0|false|no|خیر)$/.test(text)
 }
 
 export function buildRows(
@@ -293,21 +331,29 @@ export function buildRows(
 ): { parsed: ParsedRow[]; invalid: number } {
   const parsed: ParsedRow[] = []
   let invalid = 0
+  const cell = (cells: string[], index: number) => (index >= 0 ? cells[index] ?? '' : '')
+
   for (let i = mapping.headerRow + 1; i < rows.length; i++) {
     const row = rows[i] ?? []
-    const cells = row.map((cell) => clean(cell))
+    const cells = row.map((value) => clean(value))
     if (!cells.some(Boolean)) continue
-    const dateText = cells[mapping.date] ?? ''
-    const day = parseDateCell(dateText)
+
+    const day = parseDateCell(cell(cells, mapping.date))
     if (!day) {
       invalid++
       continue
     }
-    let inTime = mapping.in >= 0 ? parseTimeCell(cells[mapping.in] ?? '') : null
-    let outTime = mapping.out >= 0 ? parseTimeCell(cells[mapping.out] ?? '') : null
-    const workedMinutes =
-      mapping.worked >= 0 ? parseDurationCell(cells[mapping.worked] ?? '') : null
-    const note = mapping.note >= 0 ? cells[mapping.note] || undefined : undefined
+
+    let inTime = parseTimeCell(cell(cells, mapping.in))
+    let outTime = parseTimeCell(cell(cells, mapping.out))
+    let in2Time = parseTimeCell(cell(cells, mapping.in2))
+    let out2Time = parseTimeCell(cell(cells, mapping.out2))
+    const workedMinutes = parseDurationCell(cell(cells, mapping.worked))
+    const leaveMinutes = parseDurationCell(cell(cells, mapping.leave))
+    const overtimeMinutes = parseDurationCell(cell(cells, mapping.overtime))
+    const noteText = cell(cells, mapping.note)
+    const note = noteText && noteText !== '—' && noteText !== '-' ? noteText : undefined
+    const holiday = parseHoliday(noteText)
 
     // اگر خروج ثبت نشده ولی مدت کارکرد داریم، خروج را حساب می‌کنیم
     if (!outTime && inTime && workedMinutes) {
@@ -315,16 +361,24 @@ export function buildRows(
       outTime = fmtMinutes(h * 60 + m + workedMinutes)
     }
 
-    const ok = Boolean(inTime || outTime || workedMinutes || note)
+    const ok = Boolean(
+      inTime || outTime || in2Time || out2Time || workedMinutes || leaveMinutes || overtimeMinutes || note || holiday,
+    )
+
     parsed.push({
       raw: row,
       day,
       in: inTime ?? undefined,
       out: outTime ?? undefined,
-      note: note && note !== '—' ? note : undefined,
+      in2: in2Time ?? undefined,
+      out2: out2Time ?? undefined,
+      note,
+      leaveMinutes: leaveMinutes ?? undefined,
+      overtimeMinutes: overtimeMinutes ?? undefined,
       workedMinutes: workedMinutes ?? undefined,
+      holiday: holiday || undefined,
       ok,
-      error: ok ? undefined : 'ساعت ورود/خروج ندارد',
+      error: ok ? undefined : 'ساعت یا مقدار قابل ثبتی ندارد',
     })
     if (!ok) invalid++
   }
@@ -336,34 +390,44 @@ export function rowsToDayRecords(rows: ParsedRow[], settings: Settings): DayReco
   const records: DayRecord[] = []
   for (const row of rows) {
     if (!row.day || !row.ok) continue
-    let inTime = row.in
-    let outTime = row.out
 
-    // اگر فقط مدت کارکرد آمده، ساعت‌ها را از روی شیفت بازسازی می‌کنیم
-    if (!inTime && !outTime && row.workedMinutes) {
-      inTime = settings.shiftStart
+    const pairs: { in?: string; out?: string }[] = []
+    if (row.in || row.out) pairs.push({ in: row.in, out: row.out })
+    if (row.in2 || row.out2) pairs.push({ in: row.in2, out: row.out2 })
+
+    // فقط مدت کارکرد داده شده: ساعت‌ها را از روی شیفت بازسازی می‌کنیم
+    if (!pairs.length && row.workedMinutes) {
       const [h, m] = settings.shiftStart.split(':').map(Number)
-      outTime = fmtMinutes(h * 60 + m + row.workedMinutes)
-    } else if (inTime && !outTime && row.workedMinutes) {
-      const [h, m] = inTime.split(':').map(Number)
-      outTime = fmtMinutes(h * 60 + m + row.workedMinutes)
-    } else if (!inTime && outTime && row.workedMinutes) {
-      const [h, m] = outTime.split(':').map(Number)
-      inTime = fmtMinutes(h * 60 + m - row.workedMinutes + 1440)
+      pairs.push({
+        in: settings.shiftStart,
+        out: fmtMinutes(h * 60 + m + row.workedMinutes),
+      })
     }
 
+    const complete = pairs.filter((pair) => pair.in && pair.out)
     let punches =
-      inTime && outTime ? buildPunches(row.day, [{ in: inTime, out: outTime }], settings) : []
+      complete.length > 0
+        ? buildPunches(row.day, complete.map((pair) => ({ in: pair.in, out: pair.out })), settings)
+        : []
+
     if (!punches.length) {
       const single = []
-      if (inTime) single.push(buildPunch(row.day, 'in', inTime, settings))
-      else if (outTime) single.push(buildPunch(row.day, 'out', outTime, settings))
+      for (const pair of pairs) {
+        if (pair.in) single.push(buildPunch(row.day, 'in', pair.in, settings))
+        else if (pair.out) single.push(buildPunch(row.day, 'out', pair.out, settings))
+      }
       punches = single
     }
-    if (!punches.length) continue
+
     const record: DayRecord = { date: row.day, punches }
+    if (row.holiday) record.holiday = true
+    if (row.leaveMinutes) record.leaveMinutes = row.leaveMinutes
+    if (row.overtimeMinutes) record.approvedOvertimeMinutes = row.overtimeMinutes
     if (row.note) record.note = row.note
-    records.push(record)
+
+    const hasContent =
+      punches.length > 0 || record.leaveMinutes || record.approvedOvertimeMinutes || record.note || record.holiday
+    if (hasContent) records.push(record)
   }
   return records
 }
@@ -380,7 +444,10 @@ export async function readWorkbook(data: ArrayBuffer): Promise<SheetData[]> {
       defval: '',
       blankrows: false,
     }) as unknown as string[][]
-    return { name, rows: rows.map((row) => (row ?? []).map((cell) => (cell == null ? '' : String(cell)))) }
+    return {
+      name,
+      rows: rows.map((row) => (row ?? []).map((value) => (value == null ? '' : String(value)))),
+    }
   })
 }
 
@@ -399,7 +466,7 @@ export function normalizeImportUrl(rawUrl: string): string {
 
   // فایل گوگل درایو
   const drive = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)([a-zA-Z0-9-_]+)/)
-  if (drive) return `https://drive.google.com/uc?export=download&id=${drive[1]}`
+  if (drive) return `https://drive.google.com/uc?export=download&id=${drive[1]}&confirm=t`
 
   // دراپ‌باکس
   if (/dropbox\.com/.test(url)) {
