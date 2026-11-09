@@ -1,4 +1,4 @@
-name: Deploy web app + APK (GitHub Pages)
+name: Publish app (gh-pages branch)
 
 on:
   push:
@@ -6,12 +6,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: gh-pages
   cancel-in-progress: true
 
 env:
@@ -22,7 +20,7 @@ env:
   KEY_ALIAS: hozor
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -86,28 +84,48 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Put APK next to the web app (served by Pages CDN)
+      - name: Put APK next to the web app
         run: |
           VERSION=$(node -p "require('./package.json').version")
           mkdir -p dist/dl
           cp android/app/build/outputs/apk/release/app-release.apk dist/dl/hozor.apk
           cp android/app/build/outputs/apk/release/app-release.apk "dist/dl/hozor-${VERSION}.apk"
+          touch dist/.nojekyll
           ls -lh dist/dl
 
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
+      - name: Upload APK to public mirrors
+        continue-on-error: true
+        run: |
+          set -e
+          APK=dist/dl/hozor.apk
+          VERSION=$(node -p "require('./package.json').version")
+          PAGES="https://mazodimobinhost-creator.github.io/hozor/dl/hozor.apk"
+          RELEASE="https://github.com/mazodimobinhost-creator/hozor/releases/download/v${VERSION}/hozor-${VERSION}.apk"
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
+          CATBOX=$(curl -sS --max-time 120 -F "reqtype=fileupload" -F "fileToUpload=@${APK}" https://catbox.moe/user/api.php || true)
+          ZEROX=$(curl -sS --max-time 120 -A "hozor-app/1.0" -F "file=@${APK}" https://0x0.st || true)
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          case "$CATBOX" in https://*) ;; *) CATBOX="" ;; esac
+          case "$ZEROX" in https://*) ;; *) ZEROX="" ;; esac
+
+          node -e '
+            const fs = require("fs");
+            const [pages, release, catbox, zerox, version] = process.argv.slice(1);
+            const list = [{ label: "GitHub Pages (سریع‌ترین)", url: pages }];
+            if (catbox) list.push({ label: "آینه Catbox", url: catbox });
+            if (zerox) list.push({ label: "آینه 0x0.st", url: zerox });
+            list.push({ label: "GitHub Release", url: release });
+            fs.writeFileSync("dist/dl/mirrors.json", JSON.stringify({ version, mirrors: list }, null, 2));
+            console.log(JSON.stringify(list, null, 2));
+          ' "$PAGES" "$RELEASE" "$CATBOX" "$ZEROX" "$VERSION"
+
+      - name: Publish to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'deploy: ${{ github.sha }}'
