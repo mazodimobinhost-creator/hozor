@@ -1979,3 +1979,58 @@ select:focus-visible {
   text-align: left;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+
+/* ============ download mirrors ============ */
+.mirror-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mirror-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcfe;
+  padding: 3px 6px 3px 3px;
+}
+
+.mirror-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 6px;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 9px;
+}
+
+.mirror-main:hover {
+  background: #f2f7f6;
+}
+
+.mirror-main > svg:last-child {
+  margin-inline-start: auto;
+  color: var(--muted);
+}
+
+.mirror-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--teal-50);
+  color: var(--teal);
+  flex: 0 0 auto;
+}
+
+.mirror-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
