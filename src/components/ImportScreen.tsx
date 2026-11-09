@@ -8,6 +8,7 @@ import {
   NO_COLUMN,
   readWorkbook,
   rowsToDayRecords,
+  type ColumnKey,
   type ColumnMapping,
   type SheetData,
 } from '../lib/importer'
@@ -24,12 +25,16 @@ import { Icon } from './Icons'
 
 type Source = 'link' | 'file'
 
-const COLUMN_LABELS: { key: keyof Omit<ColumnMapping, 'headerRow'>; label: string; hint: string }[] = [
-  { key: 'date', label: 'ستون تاریخ', hint: 'الزامی' },
-  { key: 'in', label: 'ستون ساعت ورود', hint: 'مثلاً ۰۸:۰۵' },
-  { key: 'out', label: 'ستون ساعت خروج', hint: 'مثلاً ۱۶:۳۰' },
-  { key: 'worked', label: 'ستون کارکرد', hint: 'اختیاری' },
-  { key: 'note', label: 'ستون توضیح', hint: 'اختیاری' },
+const COLUMN_LABELS: { key: ColumnKey; label: string; hint: string }[] = [
+  { key: 'date', label: 'تاریخ', hint: 'الزامی' },
+  { key: 'in', label: 'ورود', hint: '۰۸:۰۵' },
+  { key: 'out', label: 'خروج', hint: '۱۶:۳۰' },
+  { key: 'in2', label: 'ورود دوم', hint: 'اختیاری' },
+  { key: 'out2', label: 'خروج دوم', hint: 'اختیاری' },
+  { key: 'worked', label: 'کارکرد', hint: 'اختیاری' },
+  { key: 'leave', label: 'مرخصی', hint: 'دقیقه/ساعت' },
+  { key: 'overtime', label: 'اضافه‌کاری', hint: 'دقیقه/ساعت' },
+  { key: 'note', label: 'توضیح', hint: 'اختیاری' },
 ]
 
 const jdate = (day: string) => {
@@ -70,6 +75,8 @@ export function ImportScreen({ onToast }: { onToast: (msg: string) => void }) {
   }, [mapping, rows])
 
   const usable = parsed.parsed.filter((row) => row.ok)
+  const leaveCount = usable.filter((row) => (row.leaveMinutes ?? 0) > 0).length
+  const overtimeCount = usable.filter((row) => (row.overtimeMinutes ?? 0) > 0).length
 
   const applyWorkbook = useCallback((book: SheetData[], name: string) => {
     if (!book.length || !book.some((sheet) => sheet.rows.length)) {
@@ -126,7 +133,7 @@ export function ImportScreen({ onToast }: { onToast: (msg: string) => void }) {
     setResult('')
   }
 
-  const setColumn = (key: keyof Omit<ColumnMapping, 'headerRow'>, value: number) => {
+  const setColumn = (key: ColumnKey, value: number) => {
     setMapping((current) => (current ? { ...current, [key]: value } : current))
     setResult('')
   }
@@ -299,6 +306,12 @@ export function ImportScreen({ onToast }: { onToast: (msg: string) => void }) {
                 <span className="kv-k">ردیف‌های نامعتبر / عنوان</span>
                 <span className="kv-v num">{faDigits(parsed.invalid)}</span>
               </div>
+              <div className="kv">
+                <span className="kv-k">ردیف‌های دارای مرخصی / اضافه‌کاری</span>
+                <span className="kv-v num">
+                  {faDigits(leaveCount)} / {faDigits(overtimeCount)}
+                </span>
+              </div>
 
               <div className="field">
                 <label>اگر روزی از قبل ثبت شده باشد</label>
@@ -351,7 +364,11 @@ export function ImportScreen({ onToast }: { onToast: (msg: string) => void }) {
                       <th>روز</th>
                       <th>ورود</th>
                       <th>خروج</th>
+                      <th>ورود ۲</th>
+                      <th>خروج ۲</th>
                       <th>کارکرد</th>
+                      <th>مرخصی</th>
+                      <th>اضافه‌کاری</th>
                       <th>وضعیت</th>
                     </tr>
                   </thead>
@@ -364,7 +381,15 @@ export function ImportScreen({ onToast }: { onToast: (msg: string) => void }) {
                         </td>
                         <td className="num">{row.in ? faDigits(row.in) : '—'}</td>
                         <td className="num">{row.out ? faDigits(row.out) : '—'}</td>
+                        <td className="num">{row.in2 ? faDigits(row.in2) : '—'}</td>
+                        <td className="num">{row.out2 ? faDigits(row.out2) : '—'}</td>
                         <td className="num">{workedLabel(row)}</td>
+                        <td className="num">
+                          {row.leaveMinutes ? formatDuration(row.leaveMinutes) : '—'}
+                        </td>
+                        <td className="num">
+                          {row.overtimeMinutes ? formatDuration(row.overtimeMinutes) : '—'}
+                        </td>
                         <td className="tiny">
                           {row.ok ? (
                             <span className="chip chip-green">آماده ثبت</span>
@@ -376,7 +401,7 @@ export function ImportScreen({ onToast }: { onToast: (msg: string) => void }) {
                     ))}
                     {parsed.parsed.length === 0 && (
                       <tr>
-                        <td colSpan={6}>
+                        <td colSpan={10}>
                           <div className="empty-state">در این شیت ردیف قابل خواندنی پیدا نشد.</div>
                         </td>
                       </tr>
@@ -396,7 +421,9 @@ export function ImportScreen({ onToast }: { onToast: (msg: string) => void }) {
         <div className="card-body">
           <div className="kv">
             <span className="kv-k">ساختار پیشنهادی</span>
-            <span className="kv-v tiny">تاریخ · ورود · خروج · کارکرد · توضیح</span>
+            <span className="kv-v tiny">
+              تاریخ · ورود · خروج · ورود دوم · خروج دوم · کارکرد · مرخصی · اضافه‌کاری · توضیح
+            </span>
           </div>
           <div className="kv">
             <span className="kv-k">قالب تاریخ</span>

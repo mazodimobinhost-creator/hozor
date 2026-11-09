@@ -47,14 +47,24 @@ body,
   min-height: 100%;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Vazirmatn', 'Segoe UI', Tahoma, system-ui, sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
+  /* فونت وزیرمتن با زیرمجموعهٔ عربی، و فونت‌های جایگزین تا هیچ‌وقت متن بدون فونت نماند */
+  font-family: 'Vazirmatn', 'Vazir', 'IRANSans', 'Segoe UI', Tahoma, system-ui, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.72;
+  letter-spacing: normal;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overscroll-behavior-y: none;
 }
 
@@ -80,7 +90,8 @@ a {
 
 .num {
   font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum';
+  font-feature-settings: 'tnum' 1, 'kern' 1;
+  letter-spacing: normal;
 }
 
 /* ============ app shell ============ */
@@ -251,9 +262,9 @@ a {
 }
 
 .month-title {
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 800;
-  letter-spacing: -0.2px;
+  letter-spacing: normal;
 }
 
 .month-title small {
@@ -405,7 +416,7 @@ a {
 .stat-value {
   font-size: 20px;
   font-weight: 800;
-  letter-spacing: -0.3px;
+  letter-spacing: normal;
   font-variant-numeric: tabular-nums;
   margin-top: auto;
 }
@@ -1232,8 +1243,9 @@ a {
   justify-content: center;
   gap: 3px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 600;
+  letter-spacing: normal;
   position: relative;
 }
 
@@ -1399,7 +1411,7 @@ a {
 }
 
 .tiny {
-  font-size: 10.5px;
+  font-size: 11.5px;
 }
 
 .empty-state {
@@ -2083,7 +2095,7 @@ select:focus-visible {
 .auth-title {
   font-size: 19px;
   font-weight: 800;
-  letter-spacing: -0.2px;
+  letter-spacing: normal;
 }
 
 .auth-sub {
@@ -2264,5 +2276,232 @@ select:focus-visible {
 @media (min-width: 760px) {
   .auth-card {
     padding: 28px 28px;
+  }
+}
+
+/* ---------- خط زرد اضافه‌کاری ---------- */
+.ot-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  flex: none;
+  margin-top: 0;
+  padding-bottom: 2px;
+  border-bottom: 2px solid #f5b301;
+  color: #8a6100;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.ot-line.is-pending {
+  border-bottom-style: dashed;
+  color: #9b7a2e;
+}
+
+.ot-line-label {
+  font-weight: 600;
+  font-size: 9.5px;
+  opacity: 0.85;
+}
+
+.holiday-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  flex: none;
+  margin-top: 0;
+  padding-bottom: 2px;
+  border-bottom: 2px solid var(--violet);
+  color: #5a3fd0;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.ot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 3px;
+  border-bottom: 2px solid #f5b301;
+  color: #8a6100;
+  background: #fffaeb;
+  border-radius: 7px 7px 2px 2px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ot-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 11px;
+  background: #fffaeb;
+  border-inline-start: 3px solid #f5b301;
+  border-radius: 10px;
+  font-size: 12.5px;
+}
+
+.ot-block.is-pending {
+  background: #fffdf6;
+  border-inline-start-style: dashed;
+}
+
+.ot-block.is-holiday {
+  background: var(--violet-50);
+  border-inline-start-color: var(--violet);
+}
+
+.ot-block-label {
+  color: #8a6a10;
+  font-weight: 600;
+}
+
+.ot-block.is-holiday .ot-block-label {
+  color: #5a3fd0;
+}
+
+.ot-block-value {
+  font-weight: 800;
+  color: #7a5300;
+}
+
+.ot-block.is-holiday .ot-block-value {
+  color: #4b32b8;
+}
+
+/* ---------- جمع‌بندی و ورودی‌های ویرایش روز ---------- */
+.day-totals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.day-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 11px;
+  background: #f8fafd;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.day-total .k {
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.day-total .v {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.day-total.is-overtime {
+  background: #fffaeb;
+  border-color: #f7dfa3;
+  border-bottom: 2px solid #f5b301;
+}
+
+.day-total.is-overtime .v {
+  color: #8a6100;
+}
+
+.ranges .range-total {
+  min-width: 42px;
+  margin-bottom: 9px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.ranges .range-total.is-empty {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.inline-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inline-input .input {
+  width: 110px;
+  text-align: center;
+}
+
+.ot-apply {
+  font-size: 11px;
+}
+
+.holiday-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 12px;
+  text-align: start;
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-family: inherit;
+}
+
+.holiday-toggle.on {
+  background: var(--violet-50);
+  border-color: #d9cfff;
+}
+
+.holiday-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.editor-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.editor-summary .pill {
+  padding: 8px 11px;
+  font-size: 12px;
+}
+
+.pill-amber {
+  background: #fffaeb;
+  color: #8a6100;
+  border: 1px solid #f7dfa3;
+}
+
+.chip-amber {
+  background: #fffaeb;
+  color: #8a6100;
+}
+
+@media (min-width: 560px) {
+  .day-totals {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

@@ -141,6 +141,7 @@ export function buildSummary(
   const { jd } = toJalali(date)
   const weekday = persianWeekday(date)
   const isWeekend = settings.weekendDays.includes(weekday)
+  const isHoliday = isWeekend || Boolean(record?.holiday)
   const isToday = key === dayKey(now)
   const isFuture = key > dayKey(now)
   const punches = record?.punches ?? []
@@ -162,28 +163,28 @@ export function buildSummary(
   const approvedOvertimeMinutes = record?.approvedOvertimeMinutes ?? 0
 
   let lateMinutes = 0
-  if (firstIn && !isWeekend && leaveMinutes < required) {
+  if (firstIn && !isHoliday && leaveMinutes < required) {
     const firstInMins = relMinutes(new Date(firstIn.at), key)
     lateMinutes = Math.max(0, firstInMins - shiftStart)
   }
 
   let earlyLeaveMinutes = 0
-  if (lastOut && !isOpen && !isWeekend && leaveMinutes < required) {
+  if (lastOut && !isOpen && !isHoliday && leaveMinutes < required) {
     const lastOutMins = relMinutes(new Date(lastOut.at), key)
     earlyLeaveMinutes = Math.max(0, shiftEnd - lastOutMins)
   }
 
   const effectiveWork = workedMinutes + Math.min(leaveMinutes, required) + meetingMinutes
-  const overtimeMinutes = isWeekend ? workedMinutes : Math.max(0, effectiveWork - required)
+  const overtimeMinutes = isHoliday ? workedMinutes : Math.max(0, effectiveWork - required)
   const pendingOvertimeMinutes = Math.max(0, overtimeMinutes - approvedOvertimeMinutes)
   // until the shift is over, a running day is not "deficit"
   const shiftIsOver = !isToday || relMinutes(now, key) >= shiftEnd
   const deficitMinutes =
-    isFuture || isWeekend || !shiftIsOver ? 0 : Math.max(0, required - effectiveWork)
+    isFuture || isHoliday || !shiftIsOver ? 0 : Math.max(0, required - effectiveWork)
 
   let status: DaySummary['status'] = 'empty'
-  if (isWeekend && workedMinutes > 0) status = 'holiday-work'
-  else if (isWeekend) status = 'off'
+  if (isHoliday && workedMinutes > 0) status = 'holiday-work'
+  else if (isHoliday) status = 'off'
   else if (leaveMinutes >= required) status = 'leave'
   else if (isOpen) status = 'open'
   else if (punches.length > 0) status = 'closed'
@@ -197,7 +198,8 @@ export function buildSummary(
     weekday,
     isWeekend,
     overnight,
-    isHoliday: isWeekend,
+    isHoliday,
+    holiday: record?.holiday || undefined,
     isToday,
     isFuture,
     punches,
@@ -252,7 +254,7 @@ export function computeMonth(
 ): MonthStats {
   const days = monthDays(jy, jm).map((d) => buildSummary(d, records[dayKey(d)], settings, now))
   const sum = (fn: (d: DaySummary) => number) => days.reduce((acc, d) => acc + fn(d), 0)
-  const workdays = days.filter((d) => !d.isWeekend).length
+  const workdays = days.filter((d) => !d.isHoliday).length
   return {
     workMinutes: sum((d) => d.inShiftMinutes),
     inShiftMinutes: sum((d) => d.inShiftMinutes),
@@ -260,7 +262,7 @@ export function computeMonth(
     approvedOvertime: sum((d) => d.approvedOvertimeMinutes),
     pendingOvertime: sum((d) => d.pendingOvertimeMinutes),
     meetingMinutes: sum((d) => d.meetingMinutes),
-    holidayWork: sum((d) => (d.isWeekend ? d.workedMinutes : 0)),
+    holidayWork: sum((d) => (d.isHoliday ? d.workedMinutes : 0)),
     lateMinutes: sum((d) => d.lateMinutes),
     leaveMinutes: sum((d) => d.leaveMinutes),
     totalWorked: sum((d) => d.workedMinutes),

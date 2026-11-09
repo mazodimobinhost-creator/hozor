@@ -16,6 +16,8 @@ export interface DayRecord {
   /** Gregorian ISO day key: YYYY-MM-DD (local) */
   date: string
   punches: Punch[]
+  /** تعطیل رسمی (غیر از تعطیلی هفتگی) — کارکرد این روز اضافه‌کاری حساب می‌شود */
+  holiday?: boolean
   leaveMinutes?: number
   meetingMinutes?: number
   approvedOvertimeMinutes?: number
@@ -44,6 +46,8 @@ export interface DaySummary {
   isWeekend: boolean
   overnight: boolean
   isHoliday: boolean
+  /** تعطیل رسمی ثبت‌شده (جدا از تعطیلی هفتگی) */
+  holiday?: boolean
   isToday: boolean
   isFuture: boolean
   punches: Punch[]

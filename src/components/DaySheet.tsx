@@ -97,7 +97,7 @@ export function DaySheet({
             <div className="sheet-title">{dateLabel}</div>
             <div className="sheet-sub num">
               شیفت {faDigits(settings.shiftStart)} تا {faDigits(settings.shiftEnd)}
-              {overnight ? ' روز بعد' : ''} · {live.isWeekend ? 'روز تعطیل' : 'روز کاری'}
+              {overnight ? ' روز بعد' : ''} · {live.isHoliday ? 'روز تعطیل' : 'روز کاری'}
             </div>
           </div>
           <div className="spacer" />
@@ -128,7 +128,7 @@ export function DaySheet({
 
             <div className="ask-links">
               <button className="btn btn-sm" onClick={() => setStep('edit')}>
-                <Icon name="list" size={14} /> ویرایش کامل روز (چند بازه، مرخصی، توضیح)
+                <Icon name="list" size={14} /> ویرایش کامل روز (ورود دوم، مرخصی، اضافه‌کاری)
               </button>
             </div>
 
@@ -153,8 +153,37 @@ export function DaySheet({
               )}
               <div className="kv">
                 <span className="kv-k">کارکرد این روز</span>
-                <span className="kv-v c-green">{formatDuration(live.workedMinutes)}</span>
+                <span className="kv-v c-green num">{formatDuration(live.workedMinutes)}</span>
               </div>
+              {live.leaveMinutes > 0 && (
+                <div className="kv">
+                  <span className="kv-k">مرخصی</span>
+                  <span className="kv-v c-blue num">{formatDuration(live.leaveMinutes)}</span>
+                </div>
+              )}
+
+              {live.pendingOvertimeMinutes > 0 && (
+                <div className="ot-block is-pending">
+                  <span className="ot-block-label">اضافه‌کاری (تأیید نشده)</span>
+                  <span className="ot-block-value num">
+                    {formatDuration(live.pendingOvertimeMinutes)}
+                  </span>
+                </div>
+              )}
+              {live.approvedOvertimeMinutes > 0 && (
+                <div className="ot-block">
+                  <span className="ot-block-label">اضافه‌کاری تأییدشده</span>
+                  <span className="ot-block-value num">
+                    {formatDuration(live.approvedOvertimeMinutes)}
+                  </span>
+                </div>
+              )}
+              {live.isHoliday && live.workedMinutes > 0 && (
+                <div className="ot-block is-holiday">
+                  <span className="ot-block-label">تعطیل‌کاری</span>
+                  <span className="ot-block-value num">{formatDuration(live.workedMinutes)}</span>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -213,13 +242,11 @@ export function DaySheet({
 
         {step === 'edit' && (
           <>
-            <div className="row2" style={{ marginBottom: 14 }}>
-              <div className="pill pill-green num" style={{ padding: '9px 10px', fontSize: 12 }}>
-                کارکرد {formatDuration(live.workedMinutes)}
-              </div>
-              <div className="pill pill-violet num" style={{ padding: '9px 10px', fontSize: 12 }}>
-                اضافه‌کاری {formatDuration(live.overtimeMinutes)}
-              </div>
+            <div className="editor-summary">
+              <div className="pill pill-green num">کارکرد {formatDuration(live.workedMinutes)}</div>
+              <div className="pill pill-blue num">مرخصی {formatDuration(live.leaveMinutes)}</div>
+              <div className="pill pill-amber num">اضافه‌کاری {formatDuration(live.overtimeMinutes)}</div>
+              {live.isHoliday && <div className="pill pill-orange">تعطیل‌کاری</div>}
             </div>
             <DayEditor
               key={key}

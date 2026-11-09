@@ -57,6 +57,8 @@ export interface DayInput {
   leaveMinutes?: number
   note?: string
   approvedOvertimeMinutes?: number
+  /** تعطیل رسمی (کارکرد این روز اضافه‌کاری است) */
+  holiday?: boolean
 }
 
 export type ImportMode = 'replace' | 'merge' | 'skip'
@@ -205,6 +207,7 @@ function rowsToRecords(rows: DayRecordRow[]): Records {
     records[row.day] = {
       date: row.day,
       punches: Array.isArray(row.punches) ? row.punches : [],
+      holiday: row.holiday || undefined,
       leaveMinutes: row.leave_minutes ?? undefined,
       meetingMinutes: row.meeting_minutes ?? undefined,
       approvedOvertimeMinutes: row.approved_overtime_minutes ?? undefined,
@@ -218,6 +221,7 @@ function recordToRow(record: DayRecord) {
   return {
     day: record.date,
     punches: record.punches ?? [],
+    holiday: record.holiday ?? false,
     leave_minutes: record.leaveMinutes ?? null,
     meeting_minutes: record.meetingMinutes ?? null,
     approved_overtime_minutes: record.approvedOvertimeMinutes ?? null,
@@ -487,7 +491,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const punches = buildPunches(dateISO, data.ranges, current.settings)
       const records = { ...current.records }
       const isEmpty =
-        punches.length === 0 && !data.leaveMinutes && !data.note && !data.approvedOvertimeMinutes
+        punches.length === 0 &&
+        !data.leaveMinutes &&
+        !data.note &&
+        !data.approvedOvertimeMinutes &&
+        !data.holiday
       if (isEmpty) {
         delete records[dateISO]
         commit(records, [], [dateISO])
@@ -495,6 +503,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         records[dateISO] = {
           date: dateISO,
           punches,
+          holiday: data.holiday || undefined,
           leaveMinutes: data.leaveMinutes || undefined,
           note: data.note?.trim() || undefined,
           approvedOvertimeMinutes: data.approvedOvertimeMinutes || undefined,
@@ -533,6 +542,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             punches: [...existing.punches, ...extra].sort(
               (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
             ),
+            holiday: item.holiday ?? existing.holiday,
             leaveMinutes: item.leaveMinutes ?? existing.leaveMinutes,
             meetingMinutes: item.meetingMinutes ?? existing.meetingMinutes,
             approvedOvertimeMinutes:
