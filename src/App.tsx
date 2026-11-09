@@ -12,6 +12,7 @@ import { ReportsScreen } from './components/ReportsScreen'
 import { ProfileScreen } from './components/ProfileScreen'
 import { Icon } from './components/Icons'
 import { exportMonthToExcel } from './lib/export'
+import { applyPwaUpdate, onPwaUpdateState } from './lib/pwa'
 
 export type Tab = 'home' | 'punch' | 'reports' | 'profile'
 
@@ -32,6 +33,10 @@ function Shell() {
   const [selected, setSelected] = useState<DaySummary | null>(null)
   const [toast, setToast] = useState<{ id: number; msg: string } | null>(null)
   const [now, setNow] = useState(new Date())
+  const [needRefresh, setNeedRefresh] = useState(false)
+  const [refreshDismissed, setRefreshDismissed] = useState(false)
+
+  useEffect(() => onPwaUpdateState(setNeedRefresh), [])
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 30_000)
@@ -193,6 +198,25 @@ function Shell() {
         onClose={() => setSelected(null)}
         onToast={showToast}
       />
+
+      {needRefresh && !refreshDismissed && (
+        <div className="update-banner" role="status">
+          <span className="update-dot" />
+          <span className="update-text">نسخه جدید اپ آماده است</span>
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={async () => {
+              showToast('در حال به‌روزرسانی…')
+              await applyPwaUpdate()
+            }}
+          >
+            بروزرسانی
+          </button>
+          <button className="icon-btn" aria-label="بستن" onClick={() => setRefreshDismissed(true)}>
+            <Icon name="x" size={15} />
+          </button>
+        </div>
+      )}
 
       {toast && (
         <div className="toast" key={toast.id}>

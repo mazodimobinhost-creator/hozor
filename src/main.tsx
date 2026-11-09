@@ -7,6 +7,9 @@ import '@fontsource/vazirmatn/700.css'
 import '@fontsource/vazirmatn/800.css'
 import './styles.css'
 import App from './App'
+import { initPwa } from './lib/pwa'
+
+initPwa()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

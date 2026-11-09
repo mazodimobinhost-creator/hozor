@@ -4,6 +4,7 @@ import { useStore } from '../lib/store'
 import { PERSIAN_WEEKDAYS, faDigits, formatDuration } from '../lib/jalali'
 import { shiftWindow } from '../lib/calc'
 import { Icon } from './Icons'
+import { UpdateCard } from './UpdateCard'
 
 export function ProfileScreen({ onToast }: { onToast: (msg: string) => void }) {
   const { settings, updateSettings, resetDemo, clearAll } = useStore()
@@ -179,6 +180,8 @@ export function ProfileScreen({ onToast }: { onToast: (msg: string) => void }) {
       </section>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <UpdateCard onToast={onToast} />
+
         <section className="card">
           <div className="card-head">
             <div className="card-title">نصب روی گوشی</div>
