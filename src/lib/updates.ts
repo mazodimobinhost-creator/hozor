@@ -82,6 +82,16 @@ export async function checkForUpdate(): Promise<UpdateCheck> {
   }
 }
 
-export function openExternal(url: string) {
+/** باز کردن لینک بیرون از اپ (مرورگر گوشی) تا دانلود APK درست کار کند */
+export async function openExternal(url: string) {
+  if (isNativeApp()) {
+    try {
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({ url })
+      return
+    } catch {
+      /* اگر پلاگین نبود، ادامه بده */
+    }
+  }
   window.open(url, '_blank', 'noopener,noreferrer')
 }

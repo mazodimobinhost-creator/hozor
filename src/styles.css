@@ -1959,3 +1959,23 @@ select:focus-visible {
     bottom: 20px;
   }
 }
+
+.link-box {
+  margin-top: 12px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: #f5f8fb;
+  border: 1px dashed var(--line-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-wrap: anywhere;
+}
+
+.link-box code {
+  font-size: 10.5px;
+  color: var(--text-soft);
+  direction: ltr;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

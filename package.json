@@ -1,6 +1,6 @@
 {
   "name": "hozor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 4173",
@@ -23,6 +23,7 @@
   "homepage": "https://github.com/mazodimobinhost-creator/hozor#readme",
   "dependencies": {
     "@capacitor/android": "^8.6.0",
+    "@capacitor/browser": "^8.0.5",
     "@capacitor/cli": "^8.6.0",
     "@capacitor/core": "^8.6.0",
     "@capacitor/ios": "^8.6.0",

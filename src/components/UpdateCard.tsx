@@ -104,8 +104,7 @@ export function UpdateCard({ onToast }: { onToast: (msg: string) => void }) {
             <button
               className="btn btn-primary"
               onClick={() => {
-                if (native && release?.apkUrl) openExternal(release.apkUrl)
-                else openExternal(downloadUrl)
+                void openExternal(native && release?.apkUrl ? release.apkUrl : downloadUrl)
               }}
             >
               <Icon name="download" size={15} /> دریافت نسخه جدید
@@ -115,6 +114,11 @@ export function UpdateCard({ onToast }: { onToast: (msg: string) => void }) {
           <a className="btn" href={RELEASES_URL} target="_blank" rel="noreferrer">
             تاریخچه نسخه‌ها
           </a>
+        </div>
+
+        <div className="link-box">
+          <span className="tiny muted">لینک دانلود:</span>
+          <code className="num">{downloadUrl}</code>
         </div>
 
         <p className="tiny muted" style={{ marginBottom: 0, marginTop: 12 }}>
