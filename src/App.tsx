@@ -217,7 +217,7 @@ function Shell() {
           <span className="update-text num">نسخه {nativeUpdate.version} آماده است</span>
           <button
             className="btn btn-sm btn-primary"
-            onClick={() => openExternal(nativeUpdate.apkUrl ?? nativeUpdate.pageUrl)}
+            onClick={() => void openExternal(nativeUpdate.apkUrl ?? nativeUpdate.pageUrl)}
           >
             دریافت
           </button>
