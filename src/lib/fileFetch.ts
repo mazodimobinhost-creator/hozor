@@ -24,6 +24,16 @@ async function toBuffer(response: Response): Promise<ArrayBuffer> {
   const buffer = await response.arrayBuffer()
   if (buffer.byteLength > MAX_BYTES) throw new FileFetchError('حجم فایل بیشتر از ۱۵ مگابایت است.')
   if (buffer.byteLength === 0) throw new FileFetchError('فایل خالی است.')
+  if (type.includes('application/json')) {
+    let message = 'پاسخ سرور فایل نبود.'
+    try {
+      const parsed = JSON.parse(new TextDecoder().decode(buffer)) as { error?: string }
+      if (parsed?.error) message = parsed.error
+    } catch {
+      /* ignore */
+    }
+    throw new FileFetchError(message)
+  }
   if (type.includes('text/html') || looksLikeHtml(buffer)) {
     throw new FileFetchError(
       'این لینک فایل اکسل برنمی‌گرداند (صفحه وب است). دسترسی لینک را روی «هر کسی که لینک را دارد» بگذارید یا فایل را دانلود و آپلود کنید.',

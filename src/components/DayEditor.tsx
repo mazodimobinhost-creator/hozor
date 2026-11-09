@@ -36,7 +36,8 @@ export function rangesFromPunches(punches: Punch[]): DayRange[] {
   for (const p of sorted) {
     const t = timeOf(p.at)
     if (p.type === 'in') {
-      if (current.in && current.out) {
+      // دو ورود پشت‌سرهم: ورود قبلی (بدون خروج) حفظ می‌شود تا گم نشود
+      if (current.in) {
         ranges.push(current)
         current = {}
       }

@@ -33,7 +33,8 @@ const navItems: {
 ]
 
 function Shell() {
-  const { settings, records, legacy, migrateLegacy, dismissLegacy, serverState } = useStore()
+  const { settings, records, legacy, migrateLegacy, dismissLegacy, serverState, syncError, syncNow } =
+    useStore()
   const today = new Date()
   const initial = toJalali(today)
 
@@ -294,6 +295,22 @@ function Shell() {
           </button>
           <button className="icon-btn" aria-label="بستن" onClick={() => setRefreshDismissed(true)}>
             <Icon name="x" size={15} />
+          </button>
+        </div>
+      )}
+
+      {syncError && (
+        <div className="sync-error-banner" role="status">
+          <Icon name="info" size={16} />
+          <span>{syncError}</span>
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={async () => {
+              const ok = await syncNow()
+              showToast(ok ? 'همه ثبت‌ها روی سرور ذخیره شد' : 'باز هم نشد؛ اتصال را بررسی کنید')
+            }}
+          >
+            تلاش دوباره
           </button>
         </div>
       )}
