@@ -93,3 +93,18 @@ src/
 ## حریم خصوصی
 
 اطلاعات هر فرد فقط روی گوشی خودش ذخیره می‌شود؛ هیچ سروری در میان نیست. اگر بعداً نیاز به نسخه تیمی/سروری داشتی، لایه داده در `src/lib/store.tsx` تنها جایی است که باید به API وصل شود.
+
+## انتشار روی GitHub Pages (لینک دائمی برای آیفون و اندروید)
+
+آدرس ثابت: `https://mazodimobinhost-creator.github.io/hozor/`
+
+ورک‌فلوی `.github/workflows/pages.yml` با هر push روی `main`:
+
+1. اپ وب را با `BASE_PATH=/hozor/` می‌سازد.
+2. APK امضاشده را هم می‌سازد و کنار خروجی وب در `dl/hozor.apk` می‌گذارد.
+3. کل خروجی را روی GitHub Pages منتشر می‌کند.
+
+بنابراین دو مسیر دانلود همیشه فعال است:
+
+- اپ/وب‌اپ: `https://mazodimobinhost-creator.github.io/hozor/`
+- فایل نصبی اندروید: `https://mazodimobinhost-creator.github.io/hozor/dl/hozor.apk`

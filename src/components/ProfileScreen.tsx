@@ -199,6 +199,20 @@ export function ProfileScreen({ onToast }: { onToast: (msg: string) => void }) {
               <span className="kv-k">نسخه اندروید/iOS با کد نیتیو</span>
               <span className="kv-v tiny">Capacitor — راهنما در فایل MOBILE.md</span>
             </div>
+            <div className="kv">
+              <span className="kv-k">لینک دائمی اپ</span>
+              <span className="kv-v tiny num">mazodimobinhost-creator.github.io/hozor</span>
+            </div>
+
+            {import.meta.env.PROD && (
+              <a
+                className="btn btn-primary"
+                style={{ width: '100%', justifyContent: 'center', marginTop: 10, padding: 11 }}
+                href={`${import.meta.env.BASE_URL}dl/hozor.apk`}
+              >
+                <Icon name="download" size={16} /> دانلود مستقیم فایل APK اندروید
+              </a>
+            )}
             <div className="notice" style={{ marginTop: 10 }}>
               <Icon name="info" size={16} />
               <div>
