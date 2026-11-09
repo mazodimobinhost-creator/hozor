@@ -340,6 +340,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         apply({ settings: merged, records })
         writeJSON(cacheKey(userId), { settings: merged, records })
+        // اگر ردیف پروفایل ساخته نشده بود، همین‌جا بساز تا نوشتن سوابق با خطای FK متوقف نشود
+        if (!profile?.id || !profile.full_name) {
+          await saveProfile(userId, merged).catch(() => undefined)
+        }
         setServerState('saved')
         await drainQueue()
       } catch {
