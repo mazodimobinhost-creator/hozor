@@ -156,6 +156,9 @@ jobs:
             jsdelivr_cdn_index: 'https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/cdn/index.html',
             jsdelivr_cdn_js: 'https://cdn.jsdelivr.net/gh/mazodimobinhost-creator/hozor@gh-pages/cdn/manifest.webmanifest',
             statically_index: 'https://cdn.statically.io/gh/mazodimobinhost-creator/hozor/gh-pages/index.html',
+            githack_index: 'https://raw.githack.com/mazodimobinhost-creator/hozor/gh-pages/index.html',
+            githack_cdn_index: 'https://raw.githack.com/mazodimobinhost-creator/hozor/gh-pages/cdn/index.html',
+            githack_assets: 'https://raw.githack.com/mazodimobinhost-creator/hozor/gh-pages/cdn/assets/index-ndAlJVBE.js',
           };
           const result = { checkedAt: new Date().toISOString(), urls: {} };
           for (const [key, url] of Object.entries(urls)) {
