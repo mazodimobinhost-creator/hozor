@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { Settings } from '../lib/types'
 import { useStore } from '../lib/store'
-import { buildSummary } from '../lib/calc'
+import { attendanceDayKey, buildSummary, shiftWindow } from '../lib/calc'
 import {
   dayKey,
+  parseDayKey,
   faDigits,
   formatClock,
   formatDuration,
@@ -31,8 +32,9 @@ export function PunchScreen({
     return () => window.clearInterval(id)
   }, [])
 
-  const today = new Date(now)
-  const key = dayKey(today)
+  const shift = shiftWindow(settings)
+  const key = attendanceDayKey(now, settings)
+  const today = parseDayKey(key)
   const summary = buildSummary(today, records[key], settings, now)
   const last = summary.punches[summary.punches.length - 1]
   const nextType: 'in' | 'out' = !last || last.type === 'out' ? 'in' : 'out'
@@ -68,7 +70,8 @@ export function PunchScreen({
       <div className="punch-main">
         <div className="live-clock num">{formatClock(now, true)}</div>
         <div className="live-date">
-          {PERSIAN_WEEKDAYS[persianWeekday(now)]} · {formatJalaliLong(now)}
+          {PERSIAN_WEEKDAYS[persianWeekday(today)]} · {formatJalaliLong(today)}
+          {shift.overnight ? ' · شیفت شبانه (تا بامداد روز بعد)' : ''}
         </div>
 
         <button className={`punch-btn ${nextType === 'out' ? 'is-out' : ''}`} onClick={handlePunch}>
@@ -85,7 +88,8 @@ export function PunchScreen({
             ? 'برای شروع کار، دکمه را فشار دهید. ورود و خروج فقط از حساب خودتان ثبت می‌شود.'
             : 'شیفت شما تا ساعت ' +
               faDigits(settings.shiftEnd) +
-              ' است. با زدن دکمه، خروج امروز ثبت می‌شود.'}
+              (shift.overnight ? ' بامداد روز بعد' : '') +
+              ' است. با زدن دکمه، خروج همین شیفت ثبت می‌شود.'}
           {isWeekend && ' امروز روز تعطیل است؛ ثبت کار در روز تعطیل به‌عنوان تعطیل‌کاری محاسبه می‌شود.'}
         </div>
 
@@ -156,6 +160,7 @@ export function PunchScreen({
               <span className="kv-k">شیفت کاری</span>
               <span className="kv-v num">
                 {faDigits(settings.shiftStart)} — {faDigits(settings.shiftEnd)}
+                {shift.overnight ? ' (روز بعد)' : ''}
               </span>
             </div>
           </div>
@@ -190,17 +195,7 @@ export function PunchScreen({
             <div className="kv" style={{ marginTop: 6 }}>
               <span className="kv-k">ساعت کاری موظفی</span>
               <span className="kv-v num">
-                {dur(
-                  Math.max(
-                    0,
-                    (Number(settings.shiftEnd.split(':')[0]) * 60 +
-                      Number(settings.shiftEnd.split(':')[1])) -
-                      (Number(settings.shiftStart.split(':')[0]) * 60 +
-                        Number(settings.shiftStart.split(':')[1])) -
-                      settings.breakMinutes,
-                  ),
-                )}{' '}
-                ساعت
+                {dur(shift.required)} ساعت
               </span>
             </div>
             <div className="kv">

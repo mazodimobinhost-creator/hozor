@@ -50,11 +50,21 @@ export function rangesFromPunches(punches: Punch[]): DayRange[] {
   return ranges.length > 0 ? ranges : [{ in: '', out: '' }]
 }
 
-const rangeMinutes = (r: DayRange): number => {
+export const rangeMinutes = (r: DayRange): number => {
   if (!r.in || !r.out) return 0
   const [ih, im] = r.in.split(':').map(Number)
   const [oh, om] = r.out.split(':').map(Number)
-  return Math.max(0, oh * 60 + om - (ih * 60 + im))
+  const diff = oh * 60 + om - (ih * 60 + im)
+  // خروج کوچک‌تر از ورود یعنی شیفت تا بامداد روز بعد ادامه دارد
+  return diff > 0 ? diff : diff + 1440
+}
+
+/** آیا این بازه از نیمه‌شب عبور می‌کند؟ */
+const crossesMidnight = (r: DayRange): boolean => {
+  if (!r.in || !r.out) return false
+  const [ih, im] = r.in.split(':').map(Number)
+  const [oh, om] = r.out.split(':').map(Number)
+  return oh * 60 + om <= ih * 60 + im
 }
 
 interface Props {
@@ -100,7 +110,7 @@ export function DayEditor({
   const validate = (): string => {
     for (const r of ranges) {
       if ((r.in && !r.out) || (!r.in && r.out)) return 'برای هر بازه، هم ساعت ورود و هم خروج را وارد کنید'
-      if (r.in && r.out && rangeMinutes(r) === 0) return 'ساعت خروج باید بعد از ساعت ورود باشد'
+      if (r.in && r.out && r.in === r.out) return 'ساعت خروج نمی‌تواند با ساعت ورود یکی باشد'
     }
     return ''
   }
@@ -163,7 +173,7 @@ export function DayEditor({
               />
             </label>
             <label className="range-cell">
-              <span>خروج</span>
+              <span>خروج{crossesMidnight(r) ? ' (بامداد)' : ''}</span>
               <input
                 className="input num"
                 type="time"
@@ -249,9 +259,19 @@ export function DayEditor({
         )}
       </div>
 
+      {ranges.some(crossesMidnight) && (
+        <div className="notice" style={{ marginTop: 10 }}>
+          <Icon name="info" size={16} />
+          <div>
+            بازه‌ای که ساعت خروجش از ورود کوچک‌تر است، به‌صورت «تا بامداد روز بعد» محاسبه می‌شود و
+            کارکردش به همین روز نسبت داده می‌شود، نه به فردا.
+          </div>
+        </div>
+      )}
+
       <p className="tiny muted" style={{ marginBottom: 0, marginTop: 10 }}>
-        هر بازه‌ای که خالی بماند نادیده گرفته می‌شود. اگر شیفت شما بعد از نیمه‌شب تمام می‌شود، بازه را
-        در همان روز با ساعت پایانی بنویسید (مثلاً ۰۸:۰۰ تا ۲۰:۰۰).
+        هر بازه‌ای که خالی بماند نادیده گرفته می‌شود. برای شیفت شبانه کافی است خروج را ساعت بامداد
+        بنویسید (مثلاً ورود ۰۸:۰۰ و خروج ۰۴:۰۰)؛ خودش می‌فهمد که فردا بامداد است.
       </p>
     </div>
   )

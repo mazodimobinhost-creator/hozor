@@ -1,5 +1,6 @@
-import type { DayRecord, DaySummary, Punch, Settings } from './types'
+import type { DayRange, DayRecord, DaySummary, Punch, PunchType, Settings } from './types'
 import {
+  addDays,
   dayKey,
   formatDuration,
   minutesOfDay,
@@ -16,6 +17,85 @@ export interface Period {
   end: number
 }
 
+/**
+ * Shift window in "minutes from the attendance day's 00:00".
+ * A shift like 08:00 -> 04:00 crosses midnight, so its end becomes 28:00 (1680).
+ */
+export function shiftWindow(settings: Settings) {
+  const start = timeToMinutes(settings.shiftStart)
+  const endRaw = timeToMinutes(settings.shiftEnd)
+  const overnight = endRaw <= start
+  const end = overnight ? endRaw + 1440 : endRaw
+  const required = Math.max(0, end - start - (settings.breakMinutes || 0))
+  return { start, end, endRaw, overnight, required }
+}
+
+/**
+ * Turn editable in/out ranges of one attendance day into real punches.
+ * A range whose out-time is earlier than its in-time is treated as "until dawn
+ * of the next day" and is stored on the next calendar date, but still counted
+ * for the attendance day it belongs to.
+ */
+export function buildPunches(dateISO: string, ranges: DayRange[], settings: Settings): Punch[] {
+  const { start, endRaw, overnight } = shiftWindow(settings)
+  const base = parseDayKey(dateISO)
+  const isTail = (mins: number) => overnight && mins <= endRaw && mins < start
+
+  const punches: Punch[] = []
+  for (const range of ranges) {
+    if (!range.in || !range.out) continue
+    const inMins = timeToMinutes(range.in)
+    const outMins = timeToMinutes(range.out)
+    const inAbs = inMins + (isTail(inMins) ? 1440 : 0)
+    let outAbs = outMins + (isTail(outMins) ? 1440 : 0)
+    if (outAbs <= inAbs) outAbs += 1440
+
+    const inDate = new Date(base)
+    inDate.setHours(0, inAbs, 0, 0)
+    const outDate = new Date(base)
+    outDate.setHours(0, outAbs, 0, 0)
+    punches.push({ type: 'in', at: inDate.toISOString(), source: 'manual' })
+    punches.push({ type: 'out', at: outDate.toISOString(), source: 'manual' })
+  }
+  return punches.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+}
+
+/** build a single punch for a given attendance day and clock time */
+export function buildPunch(dateISO: string, type: PunchType, time: string, settings: Settings): Punch {
+  const { start, endRaw, overnight } = shiftWindow(settings)
+  const base = parseDayKey(dateISO)
+  const [hh, mm] = time.split(':').map(Number)
+  const mins = (hh || 0) * 60 + (mm || 0)
+  const isTail = overnight && mins <= endRaw && mins < start
+  const when = new Date(base)
+  when.setHours(0, mins + (isTail ? 1440 : 0), 0, 0)
+  return { type, at: when.toISOString(), source: 'manual' }
+}
+
+/** minutes since the attendance day's 00:00 (after-midnight punches get +1440) */
+export function relMinutes(at: Date, key: string): number {
+  const dayDiff = Math.round(
+    (parseDayKey(dayKey(at)).getTime() - parseDayKey(key).getTime()) / 86_400_000,
+  )
+  return minutesOfDay(at) + dayDiff * 1440
+}
+
+/**
+ * Which attendance day a punch belongs to.
+ * Punches in the early-morning tail of an overnight shift (e.g. 02:00 when the
+ * shift runs 08:00 -> 04:00) belong to the previous day.
+ */
+export function attendanceDayKey(at: Date, settings: Settings): string {
+  const { start, endRaw, overnight } = shiftWindow(settings)
+  const mins = minutesOfDay(at)
+  if (overnight && mins <= endRaw) return dayKey(addDays(at, -1))
+  if (!overnight && mins < start && mins <= endRaw) {
+    // before the shift started: could be the tail of yesterday's overtime
+    return dayKey(at)
+  }
+  return dayKey(at)
+}
+
 /** split punches into worked periods (in -> out) */
 export function toPeriods(
   punches: Punch[],
@@ -27,10 +107,7 @@ export function toPeriods(
   const periods: Period[] = []
   let openAt: number | null = null
   for (const p of sorted) {
-    const d = new Date(p.at)
-    let mins = minutesOfDay(d)
-    // punches after midnight belong to the next clock day: shift them by 1440? keep same-day logic
-    if (dayKey(d) !== dayKeyStr) mins = minutesOfDay(d) + 1440
+    const mins = relMinutes(new Date(p.at), dayKeyStr)
     if (p.type === 'in') {
       openAt = mins
     } else if (openAt !== null) {
@@ -43,9 +120,9 @@ export function toPeriods(
     if (dayKeyStr < today) {
       // past day: never assume someone worked until midnight.
       const cap = fallbackEnd ?? 1440
-      periods.push({ start: openAt, end: Math.max(Math.min(cap, 1440), openAt) })
+      periods.push({ start: openAt, end: Math.max(Math.min(cap, 1440 + 1440), openAt) })
     } else {
-      const nowMins = today === dayKeyStr ? minutesOfDay(now) : 1440 + minutesOfDay(now)
+      const nowMins = relMinutes(now, dayKeyStr)
       periods.push({ start: openAt, end: Math.max(nowMins, openAt) })
     }
   }
@@ -67,9 +144,7 @@ export function buildSummary(
   const isToday = key === dayKey(now)
   const isFuture = key > dayKey(now)
   const punches = record?.punches ?? []
-  const shiftStart = timeToMinutes(settings.shiftStart)
-  const shiftEnd = timeToMinutes(settings.shiftEnd)
-  const required = Math.max(0, shiftEnd - shiftStart)
+  const { start: shiftStart, end: shiftEnd, overnight, required } = shiftWindow(settings)
 
   const periods = toPeriods(punches, now, key, shiftEnd)
   const workedMinutes = periods.reduce((sum, p) => sum + (p.end - p.start), 0)
@@ -88,20 +163,23 @@ export function buildSummary(
 
   let lateMinutes = 0
   if (firstIn && !isWeekend && leaveMinutes < required) {
-    const firstInMins = minutesOfDay(new Date(firstIn.at))
+    const firstInMins = relMinutes(new Date(firstIn.at), key)
     lateMinutes = Math.max(0, firstInMins - shiftStart)
   }
 
   let earlyLeaveMinutes = 0
   if (lastOut && !isOpen && !isWeekend && leaveMinutes < required) {
-    const lastOutMins = minutesOfDay(new Date(lastOut.at))
+    const lastOutMins = relMinutes(new Date(lastOut.at), key)
     earlyLeaveMinutes = Math.max(0, shiftEnd - lastOutMins)
   }
 
   const effectiveWork = workedMinutes + Math.min(leaveMinutes, required) + meetingMinutes
   const overtimeMinutes = isWeekend ? workedMinutes : Math.max(0, effectiveWork - required)
   const pendingOvertimeMinutes = Math.max(0, overtimeMinutes - approvedOvertimeMinutes)
-  const deficitMinutes = isFuture || isWeekend ? 0 : Math.max(0, required - effectiveWork)
+  // until the shift is over, a running day is not "deficit"
+  const shiftIsOver = !isToday || relMinutes(now, key) >= shiftEnd
+  const deficitMinutes =
+    isFuture || isWeekend || !shiftIsOver ? 0 : Math.max(0, required - effectiveWork)
 
   let status: DaySummary['status'] = 'empty'
   if (isWeekend && workedMinutes > 0) status = 'holiday-work'
@@ -118,6 +196,7 @@ export function buildSummary(
     day: jd,
     weekday,
     isWeekend,
+    overnight,
     isHoliday: isWeekend,
     isToday,
     isFuture,

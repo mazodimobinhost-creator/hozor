@@ -10,6 +10,7 @@ import {
   monthLength,
   minutesToTime,
   minutesOfDay,
+  parseDayKey,
   toJalali,
 } from '../lib/jalali'
 
@@ -27,6 +28,12 @@ function timeFa(iso?: string): string {
   return faDigits(minutesToTime(minutesOfDay(new Date(iso))))
 }
 
+/** punch happened on the calendar day after the attendance day (overnight shift) */
+function isNextDay(d: DaySummary): boolean {
+  if (!d.lastOut) return false
+  return new Date(d.lastOut).getDate() !== parseDayKey(d.key).getDate()
+}
+
 /** total presence span from first in to last out */
 function presenceSpan(d: DaySummary): number {
   if (!d.firstIn || !d.lastOut) return 0
@@ -38,10 +45,12 @@ function presenceSpan(d: DaySummary): number {
 function CellBody({
   d,
   shift,
+  overnight,
   compact,
 }: {
   d: DaySummary
   shift: { start: string; end: string }
+  overnight?: boolean
   compact?: boolean
 }) {
   if (d.isFuture && d.punches.length === 0 && !d.leaveMinutes) {
@@ -58,6 +67,7 @@ function CellBody({
     <>
       <div className="pill pill-shift num">
         {faDigits(shift.start)} — {faDigits(shift.end)}
+        {overnight ? ' +۱' : ''}
       </div>
 
       {d.firstIn && (
@@ -68,7 +78,10 @@ function CellBody({
       )}
       {d.lastOut && (
         <div className="punch-row out">
-          <span className="punch-time-out num">{timeFa(d.lastOut)}</span>
+          <span className="punch-time-out num">
+            {timeFa(d.lastOut)}
+            {isNextDay(d) ? <span className="next-day">+۱</span> : null}
+          </span>
           <span className="punch-tag out">خروج</span>
         </div>
       )}
@@ -160,7 +173,11 @@ export function CalendarCard({ jy, jm, records, settings, now, onSelect }: Props
               {outside ? (
                 <div className="day-empty-note">—</div>
               ) : (
-                <CellBody d={summary} shift={{ start: settings.shiftStart, end: settings.shiftEnd }} />
+                <CellBody
+                  d={summary}
+                  shift={{ start: settings.shiftStart, end: settings.shiftEnd }}
+                  overnight={summary.overnight}
+                />
               )}
             </button>
           )
@@ -202,7 +219,10 @@ export function CalendarCard({ jy, jm, records, settings, now, onSelect }: Props
                         <span className="c-teal num">ورود {timeFa(summary.firstIn)}</span>
                       )}
                       {summary.lastOut && (
-                        <span className="c-red num">خروج {timeFa(summary.lastOut)}</span>
+                        <span className="c-red num">
+                          خروج {timeFa(summary.lastOut)}
+                          {isNextDay(summary) ? ' +۱' : ''}
+                        </span>
                       )}
                       {summary.leaveMinutes > 0 && (
                         <span className="chip chip-blue">مرخصی {formatDuration(summary.leaveMinutes)}</span>

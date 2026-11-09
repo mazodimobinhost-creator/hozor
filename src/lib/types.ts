@@ -1,5 +1,10 @@
 export type PunchType = 'in' | 'out'
 
+export interface DayRange {
+  in?: string
+  out?: string
+}
+
 export interface Punch {
   type: PunchType
   /** ISO date-time string */
@@ -37,6 +42,7 @@ export interface DaySummary {
   day: number
   weekday: number
   isWeekend: boolean
+  overnight: boolean
   isHoliday: boolean
   isToday: boolean
   isFuture: boolean

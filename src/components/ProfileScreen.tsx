@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { Settings } from '../lib/types'
 import { useStore } from '../lib/store'
-import { PERSIAN_WEEKDAYS, faDigits, formatDuration, timeToMinutes } from '../lib/jalali'
+import { PERSIAN_WEEKDAYS, faDigits, formatDuration } from '../lib/jalali'
+import { shiftWindow } from '../lib/calc'
 import { Icon } from './Icons'
 
 export function ProfileScreen({ onToast }: { onToast: (msg: string) => void }) {
@@ -19,8 +20,8 @@ export function ProfileScreen({ onToast }: { onToast: (msg: string) => void }) {
     )
   }
 
-  const required =
-    timeToMinutes(form.shiftEnd) - timeToMinutes(form.shiftStart) - (form.breakMinutes || 0)
+  const required = shiftWindow(form).required
+  const overnight = shiftWindow(form).overnight
 
   const save = () => {
     updateSettings(form)
@@ -117,9 +118,40 @@ export function ProfileScreen({ onToast }: { onToast: (msg: string) => void }) {
             <div className="field">
               <label>ساعت موظفی روزانه</label>
               <div className="input num" style={{ display: 'flex', alignItems: 'center' }}>
-                {formatDuration(required)} ساعت
+                {formatDuration(required)} ساعت{overnight ? ' (شبانه)' : ''}
               </div>
             </div>
+          </div>
+
+          <div className="field">
+            <label>شیفت‌های آماده</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {[
+                { label: '۰۸ تا ۱۷', s: '08:00', e: '17:00' },
+                { label: '۰۸ تا ۱۶', s: '08:00', e: '16:00' },
+                { label: '۰۸ تا ۲۰', s: '08:00', e: '20:00' },
+                { label: 'شیفت شبانه ۰۸ تا ۰۴', s: '08:00', e: '04:00' },
+              ].map((p) => (
+                <button
+                  key={p.label}
+                  className={`btn btn-sm ${
+                    form.shiftStart === p.s && form.shiftEnd === p.e ? 'btn-primary' : ''
+                  }`}
+                  onClick={() => {
+                    set('shiftStart', p.s)
+                    set('shiftEnd', p.e)
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            {overnight && (
+              <span className="tiny muted">
+                ساعت پایان کوچک‌تر از شروع است؛ یعنی شیفت تا بامداد روز بعد ادامه دارد و همان روز
+                محاسبه می‌شود.
+              </span>
+            )}
           </div>
 
           <div className="field">

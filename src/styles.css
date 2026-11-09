@@ -1773,3 +1773,138 @@ select:focus-visible {
   color: var(--text-soft);
   margin-inline-end: auto;
 }
+
+/* ============ day action sheet ============ */
+.ask-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-soft);
+  margin: 2px 0 12px;
+}
+
+.ask-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ask-card {
+  border: 1.5px solid var(--line-strong);
+  border-radius: 16px;
+  padding: 18px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: #fff;
+  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.16s ease;
+}
+
+.ask-card:active {
+  transform: scale(0.98);
+}
+
+.ask-card.in:hover {
+  border-color: #9be4da;
+  box-shadow: 0 8px 20px rgba(15, 155, 142, 0.14);
+}
+
+.ask-card.out:hover {
+  border-color: #f6c3c7;
+  box-shadow: 0 8px 20px rgba(224, 75, 86, 0.12);
+}
+
+.ask-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+}
+
+.ask-card.in .ask-icon {
+  background: var(--teal-50);
+  color: var(--teal);
+}
+
+.ask-card.out .ask-icon {
+  background: var(--red-50);
+  color: var(--red);
+}
+
+.ask-label {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.ask-card.in .ask-label {
+  color: var(--teal);
+}
+
+.ask-card.out .ask-label {
+  color: var(--red);
+}
+
+.ask-hint {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.ask-links {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.sheet-punches {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.time-big {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 4px;
+}
+
+.time-input {
+  width: 190px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 800;
+  padding: 12px 10px;
+  border-radius: 16px;
+  border: 1.5px solid var(--line-strong);
+  background: #fbfcfe;
+  color: var(--text);
+  letter-spacing: 1px;
+}
+
+.time-input:focus {
+  outline: none;
+  border-color: #9fe3d9;
+  box-shadow: 0 0 0 3px rgba(15, 155, 142, 0.13);
+  background: #fff;
+}
+
+.time-chips {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.next-day {
+  display: inline-block;
+  font-size: 8px;
+  font-weight: 700;
+  color: #b3596a;
+  background: #fdeff1;
+  border-radius: 4px;
+  padding: 0 3px;
+  margin-inline-start: 2px;
+  vertical-align: middle;
+}

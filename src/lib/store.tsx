@@ -8,8 +8,18 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { DayRecord, Punch, PunchType, Settings } from './types'
-import { dayKey, fromJalali, minutesToTime, parseDayKey, persianWeekday, toJalali } from './jalali'
+import type { DayRange, DayRecord, Punch, PunchType, Settings } from './types'
+import { attendanceDayKey, buildPunch, buildPunches, shiftWindow } from './calc'
+import {
+  addDays,
+  dayKey,
+  fromJalali,
+  minutesToTime,
+  parseDayKey,
+  persianWeekday,
+  timeToMinutes,
+  toJalali,
+} from './jalali'
 
 const STORAGE_KEY = 'hozor.v1'
 
@@ -19,18 +29,15 @@ export const defaultSettings: Settings = {
   unit: 'واحد پرسنلی و دبیرخانه',
   org: 'مجتمع فولاد',
   shiftStart: '08:00',
-  shiftEnd: '17:00',
+  shiftEnd: '04:00',
   breakMinutes: 0,
   weekendDays: [6],
   monthlyLeaveMinutes: 0,
 }
 
-type Records = Record<string, DayRecord>
+export type { DayRange }
 
-export interface DayRange {
-  in?: string
-  out?: string
-}
+type Records = Record<string, DayRecord>
 
 export interface DayInput {
   ranges: DayRange[]
@@ -50,6 +57,8 @@ interface StoreValue {
   records: Records
   updateSettings: (patch: Partial<Settings>) => void
   punch: (type: PunchType, at?: Date) => void
+  /** record an entry/exit for a specific attendance day at a specific clock time */
+  punchOn: (dateISO: string, type: PunchType, time: string) => void
   removeLastPunch: () => void
   saveDay: (dateISO: string, data: DayInput) => void
   deleteDay: (dateISO: string) => void
@@ -71,6 +80,7 @@ export function SeedDemoData(now = new Date()): { settings: Settings; records: R
   const records: Records = {}
   const { jy, jm } = toJalali(now)
   const settings = { ...defaultSettings }
+  const { start, endRaw } = shiftWindow(settings)
 
   const months = [
     { jy, jm, upToToday: true },
@@ -96,14 +106,8 @@ export function SeedDemoData(now = new Date()): { settings: Settings; records: R
       }
       if (isWeekend) {
         if (rnd(1) > 0.82) {
-          records[key] = {
-            date: key,
-            punches: [
-              { type: 'in', at: timeOn(date, '09:40').toISOString(), source: 'manual' },
-              { type: 'out', at: timeOn(date, '13:10').toISOString(), source: 'manual' },
-            ],
-            approvedOvertimeMinutes: 210,
-          }
+          const punches = buildPunches(key, [{ in: '09:30', out: '13:00' }], settings)
+          records[key] = { date: key, punches, approvedOvertimeMinutes: 210 }
         }
         continue
       }
@@ -118,26 +122,28 @@ export function SeedDemoData(now = new Date()): { settings: Settings; records: R
         continue
       }
       if (upToToday && key === dayKey(now)) {
-        // today: one open punch in the morning
-        records[key] = {
-          date: key,
-          punches: [{ type: 'in', at: timeOn(date, '08:07').toISOString(), source: 'mobile' }],
-        }
+        // امروز فقط ورود ثبت شده است
+        const at = new Date(date)
+        at.setHours(0, start + 7, 0, 0)
+        records[key] = { date: key, punches: [{ type: 'in', at: at.toISOString(), source: 'mobile' }] }
         continue
       }
-      const inMin = 7 * 60 + 42 + Math.floor(rnd(3) * 78) // 07:42 - 09:00
-      const baseOut = 17 * 60 + Math.floor(rnd(4) * 22) // 17:00 - 17:22
+
+      const inMins = start - 18 + Math.floor(rnd(3) * 40)
       const longDay = rnd(5) > 0.8
-      const outMin = longDay ? baseOut + 90 + Math.floor(rnd(6) * 150) : baseOut
-      const otApproved = rnd(7) > 0.55
-      const meeting = rnd(8) > 0.8 ? 30 + Math.floor(rnd(9) * 3) * 30 : 0
+      const outMins =
+        endRaw - 8 + Math.floor(rnd(4) * 24) + (longDay ? 90 + Math.floor(rnd(6) * 150) : 0)
+      const meeting = rnd(8) > 0.82 ? 30 + Math.floor(rnd(9) * 3) * 30 : 0
+      const overt = Math.max(0, outMins - endRaw)
+      const punches = buildPunches(
+        key,
+        [{ in: minutesToTime(inMins), out: minutesToTime(outMins % 1440) }],
+        settings,
+      )
       records[key] = {
         date: key,
-        punches: [
-          { type: 'in', at: timeOn(date, minutesToTime(inMin)).toISOString(), source: 'mobile' },
-          { type: 'out', at: timeOn(date, minutesToTime(outMin)).toISOString(), source: 'mobile' },
-        ],
-        approvedOvertimeMinutes: otApproved ? Math.max(0, outMin - 17 * 60) : 0,
+        punches,
+        approvedOvertimeMinutes: rnd(7) > 0.55 ? overt : 0,
         meetingMinutes: meeting,
         note: meeting ? 'کسر کار جلسه' : undefined,
       }
@@ -184,7 +190,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const punch = useCallback((type: PunchType, at: Date = new Date()) => {
     setState((s) => {
-      const key = dayKey(at)
+      const key = attendanceDayKey(at, s.settings)
       const existing = s.records[key] ?? { date: key, punches: [] }
       const last = existing.punches[existing.punches.length - 1]
       // avoid double taps of the same type within 60s
@@ -204,9 +210,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const punchOn = useCallback((dateISO: string, type: PunchType, time: string) => {
+    setState((s) => {
+      const punch = buildPunch(dateISO, type, time, s.settings)
+      const existing = s.records[dateISO] ?? { date: dateISO, punches: [] }
+      const at = new Date(punch.at)
+      const duplicate = existing.punches.some((p) => {
+        if (p.type !== type) return false
+        const d = new Date(p.at)
+        return d.getTime() === at.getTime()
+      })
+      if (duplicate) return s
+      const punches = [...existing.punches, punch].sort(
+        (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
+      )
+      return { ...s, records: { ...s.records, [dateISO]: { ...existing, punches } } }
+    })
+  }, [])
+
   const removeLastPunch = useCallback(() => {
     setState((s) => {
-      const key = dayKey(new Date())
+      const key = attendanceDayKey(new Date(), s.settings)
       const rec = s.records[key]
       if (!rec || rec.punches.length === 0) return s
       const punches = rec.punches.slice(0, -1)
@@ -219,14 +243,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const saveDay = useCallback((dateISO: string, data: DayInput) => {
     setState((s) => {
-      const date = parseDayKey(dateISO)
-      const punches: Punch[] = []
-      for (const range of data.ranges) {
-        if (range.in) punches.push({ type: 'in', at: timeOn(date, range.in).toISOString(), source: 'manual' })
-        if (range.out) punches.push({ type: 'out', at: timeOn(date, range.out).toISOString(), source: 'manual' })
-      }
-      punches.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
-
+      const punches = buildPunches(dateISO, data.ranges, s.settings)
       const records = { ...s.records }
       const isEmpty =
         punches.length === 0 && !data.leaveMinutes && !data.note && !data.approvedOvertimeMinutes
@@ -262,7 +279,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, records: {}, seeded: false }))
   }, [])
 
-  const todayPunches = useMemo(() => state.records[dayKey(new Date())]?.punches ?? [], [state.records])
+  const todayPunches = useMemo(
+    () => state.records[attendanceDayKey(new Date(), state.settings)]?.punches ?? [],
+    [state.records, state.settings],
+  )
 
   const value = useMemo<StoreValue>(
     () => ({
@@ -270,6 +290,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       records: state.records,
       updateSettings,
       punch,
+      punchOn,
       removeLastPunch,
       saveDay,
       deleteDay,
@@ -282,6 +303,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       state.records,
       updateSettings,
       punch,
+      punchOn,
       removeLastPunch,
       saveDay,
       deleteDay,

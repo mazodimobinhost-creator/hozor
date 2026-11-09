@@ -1,4 +1,4 @@
-import type { MonthStats } from '../lib/calc'
+import { shiftWindow, type MonthStats } from '../lib/calc'
 import type { Settings } from '../lib/types'
 import {
   PERSIAN_MONTHS,
@@ -196,15 +196,7 @@ export function ReportsScreen({
             <div className="kv">
               <span className="kv-k">شیفت موظفی روزانه</span>
               <span className="kv-v num">
-                {formatDuration(
-                  Math.max(
-                    0,
-                    (Number(settings.shiftEnd.split(':')[0]) * 60 + Number(settings.shiftEnd.split(':')[1])) -
-                      (Number(settings.shiftStart.split(':')[0]) * 60 +
-                        Number(settings.shiftStart.split(':')[1])) -
-                      settings.breakMinutes,
-                  ),
-                )}
+                {formatDuration(shiftWindow(settings).required)}
               </span>
             </div>
           </div>
