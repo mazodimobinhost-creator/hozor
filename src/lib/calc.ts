@@ -17,7 +17,12 @@ export interface Period {
 }
 
 /** split punches into worked periods (in -> out) */
-export function toPeriods(punches: Punch[], now: Date, dayKeyStr: string): Period[] {
+export function toPeriods(
+  punches: Punch[],
+  now: Date,
+  dayKeyStr: string,
+  fallbackEnd?: number,
+): Period[] {
   const sorted = [...punches].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
   const periods: Period[] = []
   let openAt: number | null = null
@@ -34,9 +39,15 @@ export function toPeriods(punches: Punch[], now: Date, dayKeyStr: string): Perio
     }
   }
   if (openAt !== null) {
-    const nowMins =
-      dayKey(now) === dayKeyStr ? minutesOfDay(now) : dayKey(now) > dayKeyStr ? 1440 + minutesOfDay(now) : 1440
-    periods.push({ start: openAt, end: Math.max(nowMins, openAt) })
+    const today = dayKey(now)
+    if (dayKeyStr < today) {
+      // past day: never assume someone worked until midnight.
+      const cap = fallbackEnd ?? 1440
+      periods.push({ start: openAt, end: Math.max(Math.min(cap, 1440), openAt) })
+    } else {
+      const nowMins = today === dayKeyStr ? minutesOfDay(now) : 1440 + minutesOfDay(now)
+      periods.push({ start: openAt, end: Math.max(nowMins, openAt) })
+    }
   }
   return periods
 }
@@ -60,7 +71,7 @@ export function buildSummary(
   const shiftEnd = timeToMinutes(settings.shiftEnd)
   const required = Math.max(0, shiftEnd - shiftStart)
 
-  const periods = toPeriods(punches, now, key)
+  const periods = toPeriods(punches, now, key, shiftEnd)
   const workedMinutes = periods.reduce((sum, p) => sum + (p.end - p.start), 0)
   const inShiftMinutes = periods.reduce((sum, p) => sum + overlap(p, { start: shiftStart, end: shiftEnd }), 0)
   const outOfShiftMinutes = Math.max(0, workedMinutes - inShiftMinutes)
@@ -102,6 +113,8 @@ export function buildSummary(
 
   return {
     key,
+    missingOut: isOpen && key < dayKey(now),
+    note: record?.note,
     day: jd,
     weekday,
     isWeekend,

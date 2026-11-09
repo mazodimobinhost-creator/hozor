@@ -7,7 +7,7 @@ import { TopBar } from './components/TopBar'
 import { StatCards } from './components/StatCards'
 import { CalendarCard } from './components/CalendarCard'
 import { DaySheet } from './components/DaySheet'
-import { PunchScreen } from './components/PunchScreen'
+import { PunchTab } from './components/PunchTab'
 import { ReportsScreen } from './components/ReportsScreen'
 import { ProfileScreen } from './components/ProfileScreen'
 import { Icon } from './components/Icons'
@@ -122,7 +122,7 @@ function Shell() {
           </>
         )}
 
-        {tab === 'punch' && <PunchScreen settings={settings} onToast={showToast} />}
+        {tab === 'punch' && <PunchTab settings={settings} onToast={showToast} />}
 
         {tab === 'reports' && (
           <>

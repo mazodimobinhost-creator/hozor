@@ -104,6 +104,11 @@ function CellBody({
           <span>کسر جلسه {formatDuration(d.meetingMinutes)}</span>
         </div>
       )}
+      {d.missingOut && (
+        <div className="mini-note">
+          <span className="warn-note">خروج ثبت نشده</span>
+        </div>
+      )}
     </>
   )
 }
@@ -220,6 +225,8 @@ export function CalendarCard({ jy, jm, records, settings, now, onSelect }: Props
                     {summary.meetingMinutes > 0 && (
                       <span className="chip chip-orange num">جلسه {formatDuration(summary.meetingMinutes)}</span>
                     )}
+                    {summary.missingOut && <span className="chip chip-red">خروج ثبت نشده</span>}
+                    {summary.note && <span className="chip chip-gray">{summary.note}</span>}
                   </div>
                 </div>
               </button>

@@ -27,6 +27,18 @@ export const defaultSettings: Settings = {
 
 type Records = Record<string, DayRecord>
 
+export interface DayRange {
+  in?: string
+  out?: string
+}
+
+export interface DayInput {
+  ranges: DayRange[]
+  leaveMinutes?: number
+  note?: string
+  approvedOvertimeMinutes?: number
+}
+
 interface Persisted {
   settings: Settings
   records: Records
@@ -39,9 +51,7 @@ interface StoreValue {
   updateSettings: (patch: Partial<Settings>) => void
   punch: (type: PunchType, at?: Date) => void
   removeLastPunch: () => void
-  saveManualDay: (dateISO: string, inTime?: string, outTime?: string) => void
-  setLeave: (dateISO: string, minutes: number) => void
-  setApprovedOvertime: (dateISO: string, minutes: number) => void
+  saveDay: (dateISO: string, data: DayInput) => void
   deleteDay: (dateISO: string) => void
   resetDemo: () => void
   clearAll: () => void
@@ -207,37 +217,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const saveManualDay = useCallback((dateISO: string, inTime?: string, outTime?: string) => {
+  const saveDay = useCallback((dateISO: string, data: DayInput) => {
     setState((s) => {
       const date = parseDayKey(dateISO)
       const punches: Punch[] = []
-      if (inTime) punches.push({ type: 'in', at: timeOn(date, inTime).toISOString(), source: 'manual' })
-      if (outTime) punches.push({ type: 'out', at: timeOn(date, outTime).toISOString(), source: 'manual' })
-      const existing = s.records[dateISO] ?? { date: dateISO, punches: [] }
-      return { ...s, records: { ...s.records, [dateISO]: { ...existing, punches } } }
-    })
-  }, [])
-
-  const setLeave = useCallback((dateISO: string, minutes: number) => {
-    setState((s) => {
-      const existing = s.records[dateISO] ?? { date: dateISO, punches: [] }
-      return {
-        ...s,
-        records: { ...s.records, [dateISO]: { ...existing, leaveMinutes: minutes > 0 ? minutes : undefined } },
+      for (const range of data.ranges) {
+        if (range.in) punches.push({ type: 'in', at: timeOn(date, range.in).toISOString(), source: 'manual' })
+        if (range.out) punches.push({ type: 'out', at: timeOn(date, range.out).toISOString(), source: 'manual' })
       }
-    })
-  }, [])
+      punches.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
 
-  const setApprovedOvertime = useCallback((dateISO: string, minutes: number) => {
-    setState((s) => {
-      const existing = s.records[dateISO] ?? { date: dateISO, punches: [] }
-      return {
-        ...s,
-        records: {
-          ...s.records,
-          [dateISO]: { ...existing, approvedOvertimeMinutes: minutes > 0 ? minutes : undefined },
-        },
+      const records = { ...s.records }
+      const isEmpty =
+        punches.length === 0 && !data.leaveMinutes && !data.note && !data.approvedOvertimeMinutes
+      if (isEmpty) {
+        delete records[dateISO]
+      } else {
+        records[dateISO] = {
+          date: dateISO,
+          punches,
+          leaveMinutes: data.leaveMinutes || undefined,
+          note: data.note?.trim() || undefined,
+          approvedOvertimeMinutes: data.approvedOvertimeMinutes || undefined,
+        }
       }
+      return { ...s, records }
     })
   }, [])
 
@@ -267,9 +271,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateSettings,
       punch,
       removeLastPunch,
-      saveManualDay,
-      setLeave,
-      setApprovedOvertime,
+      saveDay,
       deleteDay,
       resetDemo,
       clearAll,
@@ -281,9 +283,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateSettings,
       punch,
       removeLastPunch,
-      saveManualDay,
-      setLeave,
-      setApprovedOvertime,
+      saveDay,
       deleteDay,
       resetDemo,
       clearAll,

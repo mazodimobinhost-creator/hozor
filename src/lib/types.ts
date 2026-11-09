@@ -54,5 +54,8 @@ export interface DaySummary {
   meetingMinutes: number
   leaveMinutes: number
   deficitMinutes: number
+  /** an 'in' punch without a matching 'out' on a past day */
+  missingOut: boolean
+  note?: string
   status: 'off' | 'leave' | 'open' | 'closed' | 'empty' | 'holiday-work'
 }

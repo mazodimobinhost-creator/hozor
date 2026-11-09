@@ -1498,3 +1498,278 @@ select:focus-visible {
     font-size: 18px;
   }
 }
+
+/* ============ segmented control ============ */
+.segmented {
+  display: flex;
+  gap: 3px;
+  background: #eef2f7;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-soft);
+  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+  white-space: nowrap;
+}
+
+.seg-btn.active {
+  background: #fff;
+  color: var(--teal);
+  box-shadow: 0 1px 3px rgba(20, 30, 50, 0.13);
+}
+
+/* ============ date field + picker ============ */
+.date-field {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: #fbfcfe;
+  text-align: right;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.date-field:hover {
+  border-color: #c9d3e1;
+}
+
+.date-field > svg:last-child {
+  color: var(--muted);
+  margin-inline-start: auto;
+}
+
+.date-field > svg:first-child {
+  color: var(--teal);
+  flex: 0 0 auto;
+}
+
+.date-field-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 1px;
+}
+
+.picker-sheet {
+  max-width: 400px;
+}
+
+.picker-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 0 10px;
+}
+
+.picker-title {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.picker-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.picker-weekdays span {
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.picker-day {
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-soft);
+  background: #f7f9fc;
+  transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease;
+}
+
+.picker-day:hover {
+  background: var(--teal-50);
+  color: var(--teal);
+}
+
+.picker-day.is-outside {
+  opacity: 0.35;
+  background: transparent;
+}
+
+.picker-day.is-weekend {
+  color: var(--red);
+}
+
+.picker-day.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--orange);
+}
+
+.picker-day.is-selected {
+  background: var(--teal);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(15, 155, 142, 0.3);
+}
+
+.picker-day.is-selected.is-weekend {
+  color: #fff;
+}
+
+/* ============ range editor ============ */
+.ranges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.range-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 10px 11px;
+}
+
+.range-index {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--teal-50);
+  color: var(--teal);
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  flex: 0 0 auto;
+}
+
+.range-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.range-cell > span {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.range-cell .input {
+  padding: 8px 10px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.range-remove {
+  margin-bottom: 3px;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.range-remove:hover {
+  color: var(--red);
+  background: var(--red-50);
+}
+
+.ranges-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.warn-note {
+  color: var(--red) !important;
+  background: var(--red-50) !important;
+}
+
+/* ============ recent entries ============ */
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.recent-item:last-child {
+  border-bottom: 0;
+}
+
+.recent-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 2px;
+  text-align: right;
+  min-width: 0;
+}
+
+.recent-main:hover {
+  background: #fafcfe;
+}
+
+.recent-date {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 74px;
+}
+
+.recent-date b {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.recent-date span {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.recent-times {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-soft);
+  margin-inline-end: auto;
+}

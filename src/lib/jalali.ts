@@ -100,6 +100,11 @@ export function shiftMonth(jy: number, jm: number, delta: number): { jy: number;
   return { jy: y, jm: m }
 }
 
+export function weekdayLabel(index?: number): string {
+  if (index === undefined) return ''
+  return PERSIAN_WEEKDAYS[index] ?? ''
+}
+
 export function formatJalaliLong(date: Date): string {
   const { jy, jm, jd } = toJalali(date)
   return `${faDigits(jd)} ${PERSIAN_MONTHS[jm - 1]} ${faDigits(jy)}`
